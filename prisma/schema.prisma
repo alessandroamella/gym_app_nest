@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  DEV
+  OWNER
+}
+
+enum Gender {
+  M
+  F
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  fiscalCode    String    @unique
+  gender        Gender
+  birthdate     DateTime
+  birthplace    String
+  birthProvince String
+  username      String
+  role          UserRole  @default(USER)
+  profilePic    String?
+  workouts      Workout[] @relation("UserWorkout")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+}
+
+enum WorkoutType {
+  GYM
+  CARDIO
+  YOGA
+  SPORT
+  OTHER
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+}
+
+model Media {
+  id        Int       @id @default(autoincrement())
+  url       String    @unique
+  type      MediaType
+  workout   Workout[] @relation("WorkoutMedia")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model Workout {
+  id        Int         @id @default(autoincrement())
+  startTime DateTime
+  endTime   DateTime
+  type      WorkoutType
+  notes     String?
+  media     Media[]     @relation("WorkoutMedia")
+  users     User[]      @relation("UserWorkout")
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  deletedAt DateTime?
+}
