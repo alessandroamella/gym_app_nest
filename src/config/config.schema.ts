@@ -1,6 +1,7 @@
 import Joi from 'joi';
 
 export const configValidationSchema = Joi.object({
+  DATABASE_URL: Joi.string().uri().required(),
   R2_BUCKET_NAME: Joi.string().required(),
   R2_ENDPOINT_URL: Joi.string().uri().required(),
   R2_ACCESS_KEY_ID: Joi.string().required(),

@@ -2,10 +2,12 @@
 
 ## Development
 
-0. Have [Node.js](https://nodejs.org/en/)
-1. Install [pnpm](https://pnpm.io/)
-2. `pnpm install`
-3. `pnpm run start:dev`
+0. Have [Node.js](https://nodejs.org/en/) and a [Postgres](https://www.postgresql.org/download/) DB
+1. Have all the envs, as listed in `./src/config/config.schema.ts`
+2. Install [pnpm](https://pnpm.io/)
+3. `pnpm install`
+4. `npx prisma migrate deploy`
+5. `pnpm run start:dev`
 
 ## Frontend
 
