@@ -1,15 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MediaService } from './media.service';
+import { CloudflareR2Service } from './cloudflare-r2.service';
 
-describe('MediaService', () => {
-  let service: MediaService;
+describe('CloudflareR2Service', () => {
+  let service: CloudflareR2Service;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [MediaService],
+      providers: [CloudflareR2Service],
     }).compile();
 
-    service = module.get<MediaService>(MediaService);
+    service = module.get<CloudflareR2Service>(CloudflareR2Service);
   });
 
   it('should be defined', () => {

@@ -1,54 +1,51 @@
-import { Workout, WorkoutType } from '@prisma/client';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  ValidateNested,
-} from 'class-validator';
-import { Type } from 'class-transformer';
-import { CreateMediaDto } from 'media/media.dto';
+import { IsEnum, IsOptional, IsString, IsDateString } from 'class-validator';
+import { WorkoutType } from '@prisma/client';
 
-export class CreateWorkoutDto
-  implements Omit<Workout, 'id' | 'createdAt' | 'deletedAt' | 'updatedAt'>
-{
-  @ApiProperty()
-  @IsNotEmpty()
-  startTime: Date;
+export class CreateWorkoutDto {
+  @ApiProperty({
+    description: 'The start time of the workout',
+    type: String,
+    format: 'date-time',
+  })
+  @IsDateString()
+  startTime: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  endTime: Date;
+  @ApiProperty({
+    description: 'The end time of the workout',
+    type: String,
+    format: 'date-time',
+  })
+  @IsDateString()
+  endTime: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'The type of workout',
+    enum: WorkoutType,
+  })
   @IsEnum(WorkoutType)
-  @IsNotEmpty()
   type: WorkoutType;
 
-  @ApiProperty()
-  @IsString()
+  @ApiProperty({
+    description: 'Optional notes for the workout',
+    type: String,
+    required: false,
+  })
   @IsOptional()
-  notes: string;
-
-  @ApiProperty()
-  @ValidateNested({ each: true })
-  @Type(() => CreateMediaDto)
-  media: CreateMediaDto[];
+  @IsString()
+  notes?: string;
 }
 
 export class UpdateWorkoutDto extends PartialType(CreateWorkoutDto) {}
 
-export class WorkoutDto extends CreateWorkoutDto implements Partial<Workout> {
-  @ApiProperty()
-  id: number;
-
-  @ApiProperty()
-  createdAt: Date;
-
-  @ApiProperty()
-  updatedAt: Date;
-
-  @ApiProperty({ required: false })
-  deletedAt?: Date;
+export class WorkoutMediaDto {
+  @ApiProperty({
+    description: 'Files to be uploaded as workout media',
+    type: 'array',
+    items: {
+      type: 'string',
+      format: 'binary',
+    },
+  })
+  files: Express.Multer.File[];
 }

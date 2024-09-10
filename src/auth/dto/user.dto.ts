@@ -1,12 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Gender, User, UserRole } from '@prisma/client';
-import {
-  IsDateString,
-  IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 
 export class UserDto implements Partial<User> {
   @ApiProperty({ description: 'The unique ID of the user', example: 1 })
@@ -32,7 +27,7 @@ export class UserDto implements Partial<User> {
     description: 'The birthdate of the user',
     example: '2003-07-13T00:00:00.000Z',
   })
-  @IsDateString()
+  @Type(() => Date)
   birthdate: Date;
 
   @ApiProperty({
@@ -73,12 +68,14 @@ export class UserDto implements Partial<User> {
     description: 'The date and time the user was created',
     example: '2023-08-21T12:00:00.000Z',
   })
+  @Type(() => Date)
   createdAt: Date;
 
   @ApiProperty({
     description: 'The date and time the user was last updated',
     example: '2023-08-21T12:00:00.000Z',
   })
+  @Type(() => Date)
   updatedAt: Date;
 
   @ApiProperty({
@@ -86,5 +83,6 @@ export class UserDto implements Partial<User> {
     example: '2023-08-21T12:00:00.000Z',
   })
   @IsOptional()
+  @Type(() => Date)
   deletedAt?: Date;
 }

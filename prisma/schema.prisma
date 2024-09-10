@@ -27,7 +27,8 @@ model User {
   birthProvince String
   username      String
   role          UserRole  @default(USER)
-  profilePic    String?
+  profilePicId  String?   @unique
+  profilePic    Media?    @relation(fields: [profilePicId], references: [key])
   workouts      Workout[] @relation("UserWorkout")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -45,17 +46,25 @@ enum WorkoutType {
 enum MediaType {
   IMAGE
   VIDEO
-  AUDIO
+}
+
+enum MediaCategory {
+  PROFILE_PIC
+  WORKOUT
 }
 
 model Media {
-  id        Int       @id @default(autoincrement())
-  url       String    @unique
-  type      MediaType
-  workout   Workout[] @relation("WorkoutMedia")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  key            String        @id
+  url            String        @unique
+  category       MediaCategory
+  type           MediaType
+  workoutId      Int? // if used in a workout
+  mime           String
+  workout        Workout?      @relation(fields: [workoutId], references: [id])
+  userProfilePic User?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
 }
 
 model Workout {
@@ -64,7 +73,7 @@ model Workout {
   endTime   DateTime
   type      WorkoutType
   notes     String?
-  media     Media[]     @relation("WorkoutMedia")
+  media     Media[]
   users     User[]      @relation("UserWorkout")
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt

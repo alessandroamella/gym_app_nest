@@ -1,76 +1,105 @@
 import {
-  Body,
   Controller,
-  Delete,
-  Get,
-  HttpStatus,
-  Param,
-  Patch,
   Post,
+  Get,
+  Param,
+  Delete,
+  Body,
+  UseInterceptors,
+  UploadedFiles,
+  HttpCode,
+  HttpStatus,
   UseGuards,
+  ParseIntPipe,
+  ParseFilePipeBuilder,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiOkResponse,
-  ApiCreatedResponse,
-  ApiBody,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
 import { WorkoutService } from './workout.service';
-import { JwtAuthGuard } from 'auth/jwt-auth.guard';
-import { CreateWorkoutDto, UpdateWorkoutDto, WorkoutDto } from './workout.dto';
-import { Workout } from '@prisma/client';
+import { CreateWorkoutDto, WorkoutMediaDto } from './workout.dto';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard'; // Assumes you have JWT Auth Guard setup
 
-@ApiTags('Workouts')
+@ApiTags('workout')
+@ApiBearerAuth() // Add Bearer authentication globally for this controller
 @Controller('workout')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class WorkoutController {
   constructor(private readonly workoutService: WorkoutService) {}
 
+  @UseGuards(JwtAuthGuard) // Protects the route with Bearer Auth
   @Post()
-  @ApiOperation({ summary: 'Create a new workout' })
-  @ApiCreatedResponse({ type: WorkoutDto })
-  @ApiBody({ type: CreateWorkoutDto })
-  async create(@Body() createWorkoutDto: CreateWorkoutDto): Promise<Workout> {
-    return this.workoutService.create(createWorkoutDto);
+  @ApiOperation({ summary: 'Create a new workout with optional media files' })
+  @ApiConsumes('multipart/form-data') // Indicates file upload in Swagger
+  @ApiBody({
+    description: 'Create workout data and media files',
+    type: WorkoutMediaDto, // Automatically generate schema from DTO
+  })
+  @UseInterceptors(FilesInterceptor('files', 5)) // Handles file upload
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'The workout has been successfully created.',
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Failed to create workout.',
+  })
+  async createWorkout(
+    @Body() createWorkoutDto: CreateWorkoutDto,
+    @UploadedFiles(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          // jpg, jpeg, png, gif in regex
+          fileType: /^image\/(jpg|jpeg|png|gif)$/,
+        })
+        .addMaxSizeValidator({ maxSize: 1024 * 1024 * 5 }) // 5MB
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    files: Express.Multer.File[],
+  ): Promise<any> {
+    const userId = 1; // Replace this with actual userId from Auth (e.g., JWT)
+    return this.workoutService.create(createWorkoutDto, userId, files || []);
   }
 
-  @Get()
-  @ApiOperation({ summary: 'Get all workouts' })
-  @ApiOkResponse({ type: [WorkoutDto] })
-  async findAll(): Promise<Workout[]> {
-    return this.workoutService.findAll();
-  }
-
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Get a workout by ID' })
-  @ApiOkResponse({ type: WorkoutDto })
-  async findOne(@Param('id') id: string): Promise<Workout | null> {
-    return this.workoutService.findOne(+id);
-  }
-
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update a workout by ID' })
-  @ApiOkResponse({ type: WorkoutDto })
-  @ApiBody({ type: UpdateWorkoutDto })
-  async update(
-    @Param('id') id: string,
-    @Body() updateWorkoutDto: UpdateWorkoutDto,
-  ): Promise<Workout> {
-    return this.workoutService.update(+id, updateWorkoutDto);
-  }
-
-  @Delete(':id')
-  @ApiOperation({ summary: 'Delete a workout by ID' })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'Workout deleted successfully.',
+    description: 'The workout has been retrieved successfully.',
   })
-  async remove(@Param('id') id: string): Promise<HttpStatus> {
-    await this.workoutService.remove(+id);
-    return HttpStatus.OK;
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Workout not found.',
+  })
+  async getWorkoutById(@Param('id', ParseIntPipe) id: number): Promise<any> {
+    return this.workoutService.findOne(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a workout by ID along with its media' })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'The workout has been deleted successfully.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Workout not found.',
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Failed to delete workout.',
+  })
+  async deleteWorkout(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return this.workoutService.remove(id);
   }
 }

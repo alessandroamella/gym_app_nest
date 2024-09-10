@@ -2,11 +2,14 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { Request } from 'express';
+import { AuthService } from './auth.service';
+import { JwtPayload } from './jwt-payload.interface';
 
 @Injectable()
 export class JwtAuthGuard {
   constructor(
     private jwtService: JwtService,
+    private authService: AuthService,
     private prisma: PrismaService,
   ) {}
 
@@ -19,13 +22,11 @@ export class JwtAuthGuard {
     }
 
     try {
-      const payload = await this.jwtService.verifyAsync(token, {
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
         secret: process.env.JWT_SECRET,
       });
 
-      const user = await this.prisma.user.findUnique({
-        where: { id: payload.userId },
-      });
+      const user = await this.authService.getProfile(payload.userId);
 
       if (!user) {
         throw new UnauthorizedException();
