@@ -12,9 +12,14 @@ import {
   UseGuards,
   ParseIntPipe,
   ParseFilePipeBuilder,
+  Patch,
 } from '@nestjs/common';
 import { WorkoutService } from './workout.service';
-import { CreateWorkoutDto, WorkoutMediaDto } from './workout.dto';
+import {
+  CreateWorkoutDto,
+  UpdateWorkoutDto,
+  WorkoutMediaDto,
+} from './workout.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
@@ -25,6 +30,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'; // Assumes you have JWT Auth Guard setup
+import { User } from 'auth/user.decorator';
+import { UserDto } from 'auth/user.dto';
 
 @ApiTags('workout')
 @ApiBearerAuth() // Add Bearer authentication globally for this controller
@@ -63,9 +70,46 @@ export class WorkoutController {
         }),
     )
     files: Express.Multer.File[],
-  ): Promise<any> {
-    const userId = 1; // Replace this with actual userId from Auth (e.g., JWT)
-    return this.workoutService.create(createWorkoutDto, userId, files || []);
+    @User() user: UserDto,
+  ) {
+    return this.workoutService.create(createWorkoutDto, user, files || []);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update a workout by ID with optional media files' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Update workout data and ADD media files',
+    type: WorkoutMediaDto,
+  })
+  @UseInterceptors(FilesInterceptor('files', 5))
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'The workout has been successfully updated.',
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Failed to update workout.',
+  })
+  async updateWorkout(
+    @Body() updateWorkoutDto: UpdateWorkoutDto,
+    @UploadedFiles(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          // jpg, jpeg, png, gif in regex
+          fileType: /^image\/(jpg|jpeg|png|gif)$/,
+        })
+        .addMaxSizeValidator({ maxSize: 1024 * 1024 * 5 }) // 5MB
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
+    )
+    files: Express.Multer.File[],
+    @Param('id', ParseIntPipe) id: number,
+    @User() user: UserDto,
+  ) {
+    return this.workoutService.update(id, updateWorkoutDto, user, files || []);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -79,7 +123,7 @@ export class WorkoutController {
     status: HttpStatus.NOT_FOUND,
     description: 'Workout not found.',
   })
-  async getWorkoutById(@Param('id', ParseIntPipe) id: number): Promise<any> {
+  async getWorkoutById(@Param('id', ParseIntPipe) id: number) {
     return this.workoutService.findOne(id);
   }
 
@@ -99,7 +143,10 @@ export class WorkoutController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: 'Failed to delete workout.',
   })
-  async deleteWorkout(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.workoutService.remove(id);
+  async deleteWorkout(
+    @Param('id', ParseIntPipe) id: number,
+    @User() user: UserDto,
+  ): Promise<void> {
+    return this.workoutService.softDelete(id, user);
   }
 }

@@ -19,20 +19,18 @@ enum Gender {
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
-  fiscalCode    String    @unique
-  gender        Gender
-  birthdate     DateTime
-  birthplace    String
-  birthProvince String
-  username      String
-  role          UserRole  @default(USER)
-  profilePicId  String?   @unique
-  profilePic    Media?    @relation(fields: [profilePicId], references: [key])
-  workouts      Workout[] @relation("UserWorkout")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
+  id           Int       @id @default(autoincrement())
+  fiscalCode   String    @unique
+  username     String
+  gender       Gender
+  birthdate    DateTime
+  role         UserRole  @default(USER)
+  profilePicId String?   @unique
+  profilePic   Media?    @relation(fields: [profilePicId], references: [key])
+  workouts     Workout[] @relation("UserWorkout")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
 }
 
 enum WorkoutType {

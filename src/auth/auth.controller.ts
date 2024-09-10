@@ -19,8 +19,7 @@ import {
   ApiConsumes,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { UserDto } from './dto/user.dto';
-import { UserAuthDto } from './dto/user-auth.dto';
+import { UserAuthDto, UserDto } from './user.dto';
 import { AuthService } from './auth.service';
 import { User } from './user.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';

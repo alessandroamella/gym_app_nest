@@ -12,8 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
-import { Media, MediaCategory, MediaType, Prisma } from '@prisma/client';
-import { PrismaService } from 'prisma/prisma.service';
+import { Media } from '@prisma/client';
 
 @Injectable()
 export class CloudflareR2Service {
@@ -22,7 +21,6 @@ export class CloudflareR2Service {
 
   constructor(
     private config: ConfigService,
-    private readonly prisma: PrismaService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {
     this.bucketName = this.config.get<string>('R2_BUCKET_NAME');
@@ -40,21 +38,9 @@ export class CloudflareR2Service {
 
   async uploadFile(
     fileBuffer: Buffer,
-    mediaCreateData: Omit<Prisma.MediaCreateInput, 'key' | 'url' | 'type'>,
-  ): Promise<Media> {
-    const { category, mime, userProfilePic, workout } = mediaCreateData;
-
-    const type = mime.startsWith('image/')
-      ? MediaType.IMAGE
-      : mime.startsWith('video/')
-        ? MediaType.VIDEO
-        : null;
-
-    if (!type) {
-      throw new Error(`Unsupported ${category} file, mime type: ${mime}`);
-    }
-
-    const fileKey = uuidv4() + '.' + mime.split('/')[1];
+    fileMimeType: string,
+  ): Promise<Pick<Media, 'key' | 'url'>> {
+    const fileKey = uuidv4() + '.' + fileMimeType.split('/')[1];
     this.logger.log(
       'info',
       `Uploading file with key: ${fileKey} and size ${(fileBuffer.length / 1024).toFixed(1)}kB`,
@@ -65,23 +51,16 @@ export class CloudflareR2Service {
         Bucket: this.bucketName,
         Key: fileKey,
         Body: fileBuffer,
-        ContentType: mime,
+        ContentType: fileMimeType,
       });
 
       await this.s3Client.send(command);
 
       this.logger.log('info', `File uploaded successfully: ${fileKey}`);
-      return this.prisma.media.create({
-        data: {
-          key: fileKey,
-          url: `${this.config.get<string>('R2_PUBLIC_URL')}/${fileKey}`,
-          mime: mime,
-          category,
-          type,
-          userProfilePic,
-          workout,
-        },
-      });
+      return {
+        key: fileKey,
+        url: `${this.config.get<string>('R2_PUBLIC_URL')}/${fileKey}`,
+      };
     } catch (error) {
       this.logger.error('Failed to upload file to Cloudflare R2', { error });
       throw new InternalServerErrorException(
@@ -90,33 +69,19 @@ export class CloudflareR2Service {
     }
   }
 
-  async deleteFile(key: string, soft = false): Promise<void> {
+  async deleteFile(key: string): Promise<void> {
     this.logger.log('info', `Deleting file with key: ${key}`);
 
     try {
-      if (soft) {
-        // Soft-delete the file
-        await this.prisma.media.update({
-          where: { key },
-          data: { deletedAt: new Date() },
-        });
+      // Delete the file from the bucket
+      await this.s3Client.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucketName,
+          Key: key,
+        }),
+      );
 
-        this.logger.log('info', `File soft-deleted successfully: ${key}`);
-      } else {
-        // Delete the file from the bucket
-        await this.s3Client.send(
-          new DeleteObjectCommand({
-            Bucket: this.bucketName,
-            Key: key,
-          }),
-        );
-
-        await this.prisma.media.delete({
-          where: { key },
-        });
-
-        this.logger.log('info', `File hard-deleted successfully: ${key}`);
-      }
+      this.logger.log('info', `File deleted successfully: ${key}`);
     } catch (error) {
       this.logger.error('Failed to delete file from Cloudflare R2', { error });
       throw new InternalServerErrorException(

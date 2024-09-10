@@ -1,6 +1,14 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, IsDateString } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsDateString,
+  IsDate,
+} from 'class-validator';
 import { WorkoutType } from '@prisma/client';
+import { MediaDto } from 'media/media.dto';
+import { UserDto } from 'auth/user.dto';
 
 export class CreateWorkoutDto {
   @ApiProperty({
@@ -48,4 +56,42 @@ export class WorkoutMediaDto {
     },
   })
   files: Express.Multer.File[];
+}
+
+export class WorkoutDto extends CreateWorkoutDto {
+  @ApiProperty({
+    description: 'The unique ID of the workout',
+    type: Number,
+  })
+  id: number;
+
+  @ApiProperty({
+    description: 'The unique ID of the users associated with the workout',
+    type: UserDto,
+    isArray: true,
+  })
+  users: UserDto[];
+
+  @ApiProperty({
+    description: 'The unique ID of the media associated with the workout',
+    type: MediaDto,
+    isArray: true,
+  })
+  media: MediaDto[];
+
+  @ApiProperty({
+    description: 'The creation date of the workout',
+    type: String,
+    format: 'date-time',
+  })
+  @IsDate()
+  createdAt: Date;
+
+  @ApiProperty({
+    description: 'The update date of the workout',
+    type: String,
+    format: 'date-time',
+  })
+  @IsDate()
+  updatedAt: Date;
 }
