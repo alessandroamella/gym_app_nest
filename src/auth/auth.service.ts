@@ -135,7 +135,11 @@ export class AuthService {
               select: {
                 id: true,
                 username: true,
-                profilePic: true,
+                profilePic: {
+                  select: {
+                    url: true,
+                  },
+                },
               },
             },
             media: {

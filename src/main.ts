@@ -20,15 +20,8 @@ async function bootstrap() {
   const HOST = configService.get<string>('HOST');
   const PORT = configService.get<number>('PORT');
 
-  const config = new DocumentBuilder()
-    .setTitle('Gym app')
-    .setDescription('Gym app backend')
-    .setVersion('1.0')
-    .addTag('gym-app')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  const prefix = 'v1';
+  app.setGlobalPrefix(prefix);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -43,8 +36,16 @@ async function bootstrap() {
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
 
-  const prefix = 'v1';
-  app.setGlobalPrefix(prefix);
+  const config = new DocumentBuilder()
+    .setTitle('Gym app')
+    .setDescription('Gym app backend')
+    .setVersion('1.0')
+    .setLicense('GPL-3.0', 'https://www.gnu.org/licenses/gpl-3.0.html')
+    .setContact('Bitrey', 'https://www.bitrey.it', 'webmaster@bitrey.it')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
 
   await app.listen(PORT, HOST);
 

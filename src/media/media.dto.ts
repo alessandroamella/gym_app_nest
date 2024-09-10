@@ -47,6 +47,7 @@ export class MediaDto {
   @ApiPropertyOptional({
     description: 'The workout ID if the media is associated with a workout',
     example: 1,
+    required: false,
   })
   @IsOptional()
   @IsInt()
@@ -55,6 +56,7 @@ export class MediaDto {
   @ApiPropertyOptional({
     description: 'The workout object if associated',
     type: WorkoutDto,
+    required: false,
   })
   @IsOptional()
   workout?: WorkoutDto;
@@ -69,6 +71,7 @@ export class MediaDto {
   @ApiPropertyOptional({
     description: 'The user profile object if it is a profile picture',
     type: UserDto,
+    required: false,
   })
   @IsOptional()
   userProfilePic?: UserDto;
@@ -90,6 +93,7 @@ export class MediaDto {
   @ApiPropertyOptional({
     description: 'The date when the media was deleted (soft delete)',
     example: '2023-09-20T12:34:56.789Z',
+    required: false,
   })
   @IsOptional()
   @IsDate()

@@ -18,6 +18,7 @@ import { WorkoutService } from './workout.service';
 import {
   CreateWorkoutDto,
   UpdateWorkoutDto,
+  WorkoutDto,
   WorkoutMediaDto,
 } from './workout.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -25,46 +26,50 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiConsumes,
+  ApiCreatedResponse,
+  ApiInternalServerErrorResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
-  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard'; // Assumes you have JWT Auth Guard setup
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { User } from 'auth/user.decorator';
 import { UserDto } from 'auth/user.dto';
 
 @ApiTags('workout')
-@ApiBearerAuth() // Add Bearer authentication globally for this controller
+@ApiBearerAuth()
 @Controller('workout')
+@ApiNotFoundResponse({
+  description: 'Workout not found.',
+})
+@ApiInternalServerErrorResponse({
+  description: 'Internal server error.',
+})
 export class WorkoutController {
   constructor(private readonly workoutService: WorkoutService) {}
 
-  @UseGuards(JwtAuthGuard) // Protects the route with Bearer Auth
+  @UseGuards(JwtAuthGuard)
   @Post()
   @ApiOperation({ summary: 'Create a new workout with optional media files' })
-  @ApiConsumes('multipart/form-data') // Indicates file upload in Swagger
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'Create workout data and media files',
-    type: WorkoutMediaDto, // Automatically generate schema from DTO
+    type: WorkoutMediaDto,
   })
-  @UseInterceptors(FilesInterceptor('files', 5)) // Handles file upload
-  @ApiResponse({
-    status: HttpStatus.CREATED,
+  @UseInterceptors(FilesInterceptor('files', 5))
+  @ApiCreatedResponse({
     description: 'The workout has been successfully created.',
-  })
-  @ApiResponse({
-    status: HttpStatus.INTERNAL_SERVER_ERROR,
-    description: 'Failed to create workout.',
   })
   async createWorkout(
     @Body() createWorkoutDto: CreateWorkoutDto,
     @UploadedFiles(
       new ParseFilePipeBuilder()
         .addFileTypeValidator({
-          // jpg, jpeg, png, gif in regex
           fileType: /^image\/(jpg|jpeg|png|gif)$/,
         })
-        .addMaxSizeValidator({ maxSize: 1024 * 1024 * 5 }) // 5MB
+        .addMaxSizeValidator({ maxSize: 1024 * 1024 * 5 })
         .build({
           errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
         }),
@@ -84,23 +89,17 @@ export class WorkoutController {
     type: WorkoutMediaDto,
   })
   @UseInterceptors(FilesInterceptor('files', 5))
-  @ApiResponse({
-    status: HttpStatus.OK,
+  @ApiOkResponse({
     description: 'The workout has been successfully updated.',
-  })
-  @ApiResponse({
-    status: HttpStatus.INTERNAL_SERVER_ERROR,
-    description: 'Failed to update workout.',
   })
   async updateWorkout(
     @Body() updateWorkoutDto: UpdateWorkoutDto,
     @UploadedFiles(
       new ParseFilePipeBuilder()
         .addFileTypeValidator({
-          // jpg, jpeg, png, gif in regex
           fileType: /^image\/(jpg|jpeg|png|gif)$/,
         })
-        .addMaxSizeValidator({ maxSize: 1024 * 1024 * 5 }) // 5MB
+        .addMaxSizeValidator({ maxSize: 1024 * 1024 * 5 })
         .build({
           errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
         }),
@@ -115,13 +114,10 @@ export class WorkoutController {
   @UseGuards(JwtAuthGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Get a workout by ID' })
-  @ApiResponse({
+  @ApiOkResponse({
     status: HttpStatus.OK,
     description: 'The workout has been retrieved successfully.',
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: 'Workout not found.',
+    type: WorkoutDto,
   })
   async getWorkoutById(@Param('id', ParseIntPipe) id: number) {
     return this.workoutService.findOne(id);
@@ -131,17 +127,9 @@ export class WorkoutController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a workout by ID along with its media' })
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiResponse({
+  @ApiNoContentResponse({
     status: HttpStatus.NO_CONTENT,
     description: 'The workout has been deleted successfully.',
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: 'Workout not found.',
-  })
-  @ApiResponse({
-    status: HttpStatus.INTERNAL_SERVER_ERROR,
-    description: 'Failed to delete workout.',
   })
   async deleteWorkout(
     @Param('id', ParseIntPipe) id: number,

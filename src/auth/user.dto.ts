@@ -28,6 +28,7 @@ export class UserAuthDto implements Partial<User> {
 
   @ApiProperty({
     description: 'Username of the user',
+    required: false,
   })
   @IsString()
   @IsNotEmpty()
@@ -41,6 +42,7 @@ export class UserAuthDto implements Partial<User> {
     description: 'File to be uploaded as profile picture',
     type: 'string',
     format: 'binary',
+    required: false,
   })
   @IsOptional()
   profilePic?: Express.Multer.File;
@@ -93,6 +95,7 @@ export class UserDto
     description: 'The path of the profile picture of the user',
     example: 'https://example.com/profile.jpg',
     type: PickType(MediaDto, ['url']),
+    required: false,
   })
   @IsOptional()
   profilePic?: Pick<MediaDto, 'url'>;
@@ -114,8 +117,23 @@ export class UserDto
   @ApiProperty({
     description: 'The date and time the user was deleted',
     example: '2023-08-21T12:00:00.000Z',
+    required: false,
   })
   @IsOptional()
   @Type(() => Date)
   deletedAt?: Date;
+}
+
+export class LoginDto {
+  @ApiProperty({ description: 'The user object', type: UserDto })
+  @Type(() => UserDto)
+  user: UserDto;
+
+  @ApiProperty({
+    description: 'The JWT token',
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
+  })
+  @IsString()
+  @IsNotEmpty()
+  token: string;
 }

@@ -46,7 +46,7 @@ export class CreateWorkoutDto {
 
 export class UpdateWorkoutDto extends PartialType(CreateWorkoutDto) {}
 
-export class WorkoutMediaDto {
+export class WorkoutMediaDto extends CreateWorkoutDto {
   @ApiProperty({
     description: 'Files to be uploaded as workout media',
     type: 'array',
