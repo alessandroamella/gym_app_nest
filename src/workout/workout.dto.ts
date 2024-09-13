@@ -1,4 +1,4 @@
-import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { ApiProperty, PartialType, PickType } from '@nestjs/swagger';
 import {
   IsEnum,
   IsOptional,
@@ -74,10 +74,11 @@ export class WorkoutDto extends CreateWorkoutDto {
 
   @ApiProperty({
     description: 'The unique ID of the media associated with the workout',
-    type: MediaDto,
-    isArray: true,
+    type: PickType(MediaDto, ['url']),
+    required: false,
   })
-  media: MediaDto[];
+  @IsOptional()
+  media?: Pick<MediaDto, 'url'>[];
 
   @ApiProperty({
     description: 'The creation date of the workout',
