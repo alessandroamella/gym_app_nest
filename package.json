@@ -21,7 +21,7 @@
     "reset-db": "npx prisma db push --force-reset"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.645.0",
+    "@aws-sdk/client-s3": "^3.651.0",
     "@nestjs/common": "^10.4.1",
     "@nestjs/config": "^3.2.3",
     "@nestjs/core": "^10.4.1",
@@ -34,7 +34,7 @@
     "class-validator": "^0.14.1",
     "codice-fiscale-js": "^2.3.22",
     "dayjs": "^1.11.13",
-    "express": "^4.20.0",
+    "express": "^4.21.0",
     "helmet": "^7.1.0",
     "joi": "^17.13.3",
     "lodash": "^4.17.21",
@@ -48,7 +48,7 @@
     "@nestjs/schematics": "^10.1.4",
     "@nestjs/testing": "^10.4.1",
     "@types/express": "^4.17.21",
-    "@types/jest": "^29.5.12",
+    "@types/jest": "^29.5.13",
     "@types/lodash": "^4.17.7",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.5.4",
