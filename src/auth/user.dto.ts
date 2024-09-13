@@ -1,5 +1,5 @@
-import { ApiProperty, OmitType, PickType } from '@nestjs/swagger';
-import { Gender, Media, User, UserRole } from '@prisma/client';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
+import { Gender, User, UserRole } from '@prisma/client';
 import {
   IsAlphanumeric,
   IsEnum,
@@ -12,7 +12,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { MediaDto } from 'media/media.dto';
+import { MediaDto, MediaUrlDto } from 'media/media.dto';
 
 export class UserAuthDto implements Partial<User> {
   @ApiProperty({
@@ -94,7 +94,7 @@ export class UserDto
   @ApiProperty({
     description: 'The path of the profile picture of the user',
     example: 'https://example.com/profile.jpg',
-    type: PickType(MediaDto, ['url']),
+    type: MediaUrlDto,
     required: false,
   })
   @IsOptional()

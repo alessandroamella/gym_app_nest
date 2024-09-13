@@ -1,4 +1,4 @@
-import { ApiProperty, PartialType, PickType } from '@nestjs/swagger';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
 import {
   IsEnum,
   IsOptional,
@@ -7,7 +7,7 @@ import {
   IsDate,
 } from 'class-validator';
 import { WorkoutType } from '@prisma/client';
-import { MediaDto } from 'media/media.dto';
+import { MediaDto, MediaUrlDto } from 'media/media.dto';
 import { UserDto } from 'auth/user.dto';
 
 export class CreateWorkoutDto {
@@ -74,7 +74,7 @@ export class WorkoutDto extends CreateWorkoutDto {
 
   @ApiProperty({
     description: 'The unique ID of the media associated with the workout',
-    type: PickType(MediaDto, ['url']),
+    type: MediaUrlDto,
     required: false,
   })
   @IsOptional()

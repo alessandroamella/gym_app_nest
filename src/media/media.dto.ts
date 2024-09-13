@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PickType } from '@nestjs/swagger';
 import { MediaCategory, MediaType } from '@prisma/client';
 import { UserDto } from 'auth/user.dto';
 import {
@@ -99,3 +99,5 @@ export class MediaDto {
   @IsDate()
   deletedAt?: Date;
 }
+
+export class MediaUrlDto extends PickType(MediaDto, ['url'] as const) {}
