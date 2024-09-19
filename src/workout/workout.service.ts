@@ -27,6 +27,34 @@ export class WorkoutService {
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
+  private readonly workoutSelect: Prisma.WorkoutSelect = {
+    id: true,
+    startTime: true,
+    endTime: true,
+    type: true,
+    notes: true,
+    media: {
+      select: {
+        url: true,
+        type: true,
+      },
+    },
+    createdAt: true,
+    updatedAt: true,
+    users: {
+      select: {
+        id: true,
+        profilePic: {
+          select: {
+            url: true,
+          },
+        },
+        username: true,
+        _count: { select: { workouts: true } },
+      },
+    },
+  };
+
   // Create a new workout
   async create(
     createWorkoutDto: CreateWorkoutDto,
@@ -52,6 +80,7 @@ export class WorkoutService {
       return this.findOne(workout.id);
     } catch (error) {
       this.logger.error('Error occurred while creating workout');
+      console.log(error);
       this.logger.error(error);
       throw new InternalServerErrorException('Failed to create workout');
     }
@@ -63,21 +92,7 @@ export class WorkoutService {
 
     const workout = await this.prisma.workout.findUnique({
       where: { id, deletedAt: null },
-      include: {
-        users: {
-          select: {
-            id: true,
-            profilePic: {
-              select: {
-                url: true,
-              },
-            },
-            username: true,
-            _count: { select: { workouts: true } },
-          },
-        },
-        media: { select: { url: true } },
-      },
+      select: this.workoutSelect,
     });
 
     if (!workout) {
@@ -272,5 +287,17 @@ export class WorkoutService {
       );
       throw new UnauthorizedException(`Not authorized to ${action} workout`);
     }
+  }
+
+  async getWorkoutsByUser(userId: number): Promise<Workout[]> {
+    this.logger.debug(`Fetching workouts for user ${userId}`);
+
+    const workouts = await this.prisma.workout.findMany({
+      where: { users: { some: { id: userId } } },
+      select: this.workoutSelect,
+    });
+
+    this.logger.debug(`Fetched ${workouts.length} workouts for user ${userId}`);
+    return workouts;
   }
 }

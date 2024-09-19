@@ -13,6 +13,7 @@ import {
   ParseIntPipe,
   ParseFilePipeBuilder,
   Patch,
+  BadRequestException,
 } from '@nestjs/common';
 import { WorkoutService } from './workout.service';
 import {
@@ -71,6 +72,14 @@ export class WorkoutController {
         })
         .addMaxSizeValidator({ maxSize: 1024 * 1024 * 5 })
         .build({
+          exceptionFactory(error) {
+            console.log('err: ' + error);
+            throw new BadRequestException({
+              message: 'Invalid file type or size',
+              errors: { files: error },
+              errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+            });
+          },
           errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
         }),
     )
@@ -136,5 +145,17 @@ export class WorkoutController {
     @User() user: UserDto,
   ): Promise<void> {
     return this.workoutService.softDelete(id, user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  @ApiOperation({ summary: 'Get all workouts' })
+  @ApiOkResponse({
+    status: HttpStatus.OK,
+    description: 'All workouts have been retrieved successfully.',
+    type: [WorkoutDto],
+  })
+  async getAllWorkouts(@User() user: UserDto) {
+    return this.workoutService.getWorkoutsByUser(user.id);
   }
 }

@@ -37,7 +37,11 @@ export class AuthService {
     this.logger.debug(
       'Parsed data: ' +
         JSON.stringify(
-          _.omit({ ...userAuthDto, ...parsed }, 'profilePic'),
+          {
+            ..._.omit({ ...userAuthDto, ...parsed }, 'profilePic'),
+            profilePic:
+              profilePic && (profilePic.size / 1000).toFixed(3) + 'kB',
+          },
           null,
           2,
         ),
@@ -80,6 +84,8 @@ export class AuthService {
       create: data,
     });
 
+    this.logger.debug(`User upserted: ${newUser.id}`);
+
     if (profilePic) {
       this.logger.debug('Uploading profile picture');
       const { key, url } = await this.r2Service.uploadFile(
@@ -101,8 +107,12 @@ export class AuthService {
 
     const user = await this.getProfile(newUser.id);
 
+    this.logger.debug(`User profile retrieved: ${user.id}`);
+
     const payload: JwtPayload = { userId: user.id, role: user.role };
     const token = this.jwtService.sign(payload);
+
+    this.logger.debug(`Signup / login / update finished for user ${user.id}`);
 
     return { user, token };
   }

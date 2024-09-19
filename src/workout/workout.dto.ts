@@ -1,11 +1,5 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsOptional,
-  IsString,
-  IsDateString,
-  IsDate,
-} from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsDate } from 'class-validator';
 import { WorkoutType } from '@prisma/client';
 import { MediaDto, MediaUrlDto } from 'media/media.dto';
 import { UserDto } from 'auth/user.dto';
@@ -16,16 +10,16 @@ export class CreateWorkoutDto {
     type: String,
     format: 'date-time',
   })
-  @IsDateString()
-  startTime: string;
+  @IsDate()
+  startTime: Date;
 
   @ApiProperty({
     description: 'The end time of the workout',
     type: String,
     format: 'date-time',
   })
-  @IsDateString()
-  endTime: string;
+  @IsDate()
+  endTime: Date;
 
   @ApiProperty({
     description: 'The type of workout',
