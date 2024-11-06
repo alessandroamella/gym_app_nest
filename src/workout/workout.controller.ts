@@ -1,161 +1,117 @@
 import {
+  Body,
   Controller,
-  Post,
+  Delete,
   Get,
   Param,
-  Delete,
-  Body,
-  UseInterceptors,
-  UploadedFiles,
-  HttpCode,
-  HttpStatus,
+  Post,
+  Put,
+  UploadedFile,
   UseGuards,
-  ParseIntPipe,
-  ParseFilePipeBuilder,
-  Patch,
-  BadRequestException,
+  UseInterceptors,
 } from '@nestjs/common';
+import { AuthGuard } from '../auth/auth.guard';
+import { ReqUser, User } from '../auth/user.decorator';
 import { WorkoutService } from './workout.service';
-import {
-  CreateWorkoutDto,
-  UpdateWorkoutDto,
-  WorkoutDto,
-  WorkoutMediaDto,
-} from './workout.dto';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { CreateWorkoutDto } from './dto/create-workout.dto';
+import { UpdateWorkoutDto } from './dto/update-workout.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { CreateWorkoutMediaDto } from './dto/create-workout-media.dto';
 import {
   ApiBearerAuth,
   ApiBody,
   ApiConsumes,
-  ApiCreatedResponse,
-  ApiInternalServerErrorResponse,
-  ApiNoContentResponse,
-  ApiNotFoundResponse,
   ApiOkResponse,
-  ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { User } from 'auth/user.decorator';
-import { UserDto } from 'auth/user.dto';
 
-@ApiTags('workout')
-@ApiBearerAuth()
 @Controller('workout')
-@ApiNotFoundResponse({
-  description: 'Workout not found.',
-})
-@ApiInternalServerErrorResponse({
-  description: 'Internal server error.',
-})
+@ApiTags('workout')
+@UseGuards(AuthGuard)
+@ApiBearerAuth()
 export class WorkoutController {
-  constructor(private readonly workoutService: WorkoutService) {}
+  constructor(private workoutService: WorkoutService) {}
 
-  @UseGuards(JwtAuthGuard)
   @Post()
-  @ApiOperation({ summary: 'Create a new workout with optional media files' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    description: 'Create workout data and media files',
-    type: WorkoutMediaDto,
-  })
-  @UseInterceptors(FilesInterceptor('files', 5))
-  @ApiCreatedResponse({
-    description: 'The workout has been successfully created.',
-  })
-  async createWorkout(
+  @ApiBody({ type: CreateWorkoutDto })
+  @ApiOkResponse({ description: 'Workout created' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async create(
+    @User() user: ReqUser,
     @Body() createWorkoutDto: CreateWorkoutDto,
-    @UploadedFiles(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({
-          fileType: /^image\/(jpg|jpeg|png|gif)$/,
-        })
-        .addMaxSizeValidator({ maxSize: 1024 * 1024 * 5 })
-        .build({
-          exceptionFactory(error) {
-            console.log('err: ' + error);
-            throw new BadRequestException({
-              message: 'Invalid file type or size',
-              errors: { files: error },
-              errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-            });
-          },
-          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        }),
-    )
-    files: Express.Multer.File[],
-    @User() user: UserDto,
   ) {
-    return this.workoutService.create(createWorkoutDto, user, files || []);
+    return this.workoutService.create(user.id, createWorkoutDto);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update a workout by ID with optional media files' })
+  @Get()
+  @ApiOkResponse({ description: 'List of workouts' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async findAll(@User() user: ReqUser) {
+    return this.workoutService.findAllByUser(user.id);
+  }
+
+  @Get(':id')
+  @ApiOkResponse({ description: 'Workout details' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async findOne(@User() user: ReqUser, @Param('id') id: number) {
+    return this.workoutService.findOne(user.id, id);
+  }
+
+  @Put(':id')
+  @ApiBody({ type: UpdateWorkoutDto })
+  @ApiOkResponse({ description: 'Workout updated' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async update(
+    @User() user: ReqUser,
+    @Param('id') id: number,
+    @Body() updateWorkoutDto: UpdateWorkoutDto,
+  ) {
+    return this.workoutService.update(user.id, id, updateWorkoutDto);
+  }
+
+  @Delete(':id')
+  @ApiOkResponse({ description: 'Workout deleted' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async remove(@User() user: ReqUser, @Param('id') id: number) {
+    return this.workoutService.remove(user.id, id);
+  }
+
+  @Post(':id/media')
+  @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Update workout data and ADD media files',
-    type: WorkoutMediaDto,
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
   })
-  @UseInterceptors(FilesInterceptor('files', 5))
-  @ApiOkResponse({
-    description: 'The workout has been successfully updated.',
-  })
-  async updateWorkout(
-    @Body() updateWorkoutDto: UpdateWorkoutDto,
-    @UploadedFiles(
-      new ParseFilePipeBuilder()
-        .addFileTypeValidator({
-          fileType: /^image\/(jpg|jpeg|png|gif)$/,
-        })
-        .addMaxSizeValidator({ maxSize: 1024 * 1024 * 5 })
-        .build({
-          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        }),
-    )
-    files: Express.Multer.File[],
-    @Param('id', ParseIntPipe) id: number,
-    @User() user: UserDto,
+  @ApiOkResponse({ description: 'Workout media created' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async createWorkoutMedia(
+    @User() user: ReqUser,
+    @Param('id') workoutId: number,
+    @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.workoutService.update(id, updateWorkoutDto, user, files || []);
+    const createWorkoutMediaDto: CreateWorkoutMediaDto = {
+      workoutId,
+      file: {
+        buffer: file.buffer,
+        mimetype: file.mimetype,
+      },
+    };
+    return this.workoutService.createWorkoutMedia(
+      user.id,
+      createWorkoutMediaDto,
+    );
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get(':id')
-  @ApiOperation({ summary: 'Get a workout by ID' })
-  @ApiOkResponse({
-    status: HttpStatus.OK,
-    description: 'The workout has been retrieved successfully.',
-    type: WorkoutDto,
-  })
-  async getWorkoutById(@Param('id', ParseIntPipe) id: number) {
-    return this.workoutService.findOne(id);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Delete(':id')
-  @ApiOperation({ summary: 'Delete a workout by ID along with its media' })
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiNoContentResponse({
-    status: HttpStatus.NO_CONTENT,
-    description: 'The workout has been deleted successfully.',
-  })
-  async deleteWorkout(
-    @Param('id', ParseIntPipe) id: number,
-    @User() user: UserDto,
-  ): Promise<void> {
-    return this.workoutService.softDelete(id, user);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get()
-  @ApiOperation({ summary: 'Get all workouts' })
-  @ApiOkResponse({
-    status: HttpStatus.OK,
-    description: 'All workouts have been retrieved successfully.',
-    type: [WorkoutDto],
-  })
-  async getAllWorkouts(@User() user: UserDto) {
-    return this.workoutService.getWorkoutsByUser(user.id);
+  @Delete('media/:key')
+  @ApiOkResponse({ description: 'Workout media deleted' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async deleteWorkoutMedia(@User() user: ReqUser, @Param('key') key: string) {
+    return this.workoutService.deleteWorkoutMedia(user.id, { key });
   }
 }

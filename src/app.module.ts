@@ -4,10 +4,11 @@ import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { WorkoutModule } from './workout/workout.module';
-import { WinstonModule } from 'nest-winston';
+import { utilities, WinstonModule } from 'nest-winston';
+import { colorize } from 'json-colorizer';
 import { CloudflareR2Module } from './cloudflare-r2/cloudflare-r2.module';
 import { configValidationSchema } from 'config/config.schema';
-import { winstonConfig } from 'logger';
+import winston from 'winston';
 
 @Module({
   imports: [
@@ -26,7 +27,33 @@ import { winstonConfig } from 'logger';
     AuthModule,
     WorkoutModule,
     PrismaModule,
-    WinstonModule.forRoot(winstonConfig),
+    WinstonModule.forRoot({
+      transports: [
+        new winston.transports.Console({
+          level: 'debug',
+          format: winston.format.combine(
+            winston.format.colorize(),
+            winston.format.timestamp(),
+            winston.format.ms(),
+            utilities.format.nestLike('Backend', {
+              colors: true,
+              prettyPrint: true,
+            }),
+            winston.format.printf((info) => {
+              if (info.message instanceof Error) {
+                return `${info.timestamp} ${info.level}: ${info.message.message}`;
+              }
+              if (typeof info.message === 'object') {
+                return `${info.timestamp} ${info.level}: ${colorize(
+                  JSON.stringify(info.message, null, 2),
+                )}`;
+              }
+              return `${info.timestamp} ${info.level}: ${info.message}`;
+            }),
+          ),
+        }),
+      ],
+    }),
     CloudflareR2Module,
   ],
 })

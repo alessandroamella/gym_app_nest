@@ -1,79 +1,78 @@
 import {
   Body,
   Controller,
-  FileTypeValidator,
   Get,
-  MaxFileSizeValidator,
-  ParseFilePipe,
+  Patch,
   Post,
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  HttpStatus,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiOkResponse,
-  ApiCreatedResponse,
-  ApiBearerAuth,
-  ApiConsumes,
-  ApiBadRequestResponse,
-  ApiUnauthorizedResponse,
-  ApiInternalServerErrorResponse,
-} from '@nestjs/swagger';
-import { JwtAuthGuard } from './jwt-auth.guard';
-import { LoginDto, UserAuthDto, UserDto } from './user.dto';
 import { AuthService } from './auth.service';
-import { User } from './user.decorator';
+import { AuthDto } from './dto/auth.dto';
+import { AuthGuard } from './auth.guard';
+import { ReqUser, User } from './user.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOkResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 
-@ApiTags('auth')
 @Controller('auth')
-@ApiInternalServerErrorResponse({
-  status: HttpStatus.INTERNAL_SERVER_ERROR,
-  description: 'Internal server error.',
-})
+@ApiTags('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private authService: AuthService) {}
 
-  @ApiOperation({ summary: 'Upserts a user' })
-  @ApiCreatedResponse({ type: LoginDto, description: 'User registered.' })
-  @ApiOkResponse({ type: LoginDto, description: 'User logged in.' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBadRequestResponse({
-    description: 'Invalid input data.',
-  })
-  @UseInterceptors(FileInterceptor('profilePic'))
   @Post('login')
-  async login(
-    @Body() userAuthDto: UserAuthDto,
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 5 }),
-          new FileTypeValidator({ fileType: /^image\/(jpg|jpeg|png|gif)$/ }),
-        ],
-        fileIsRequired: false,
-      }),
-    )
-    profilePic?: Express.Multer.File,
-  ) {
-    return await this.authService.login({ ...userAuthDto, profilePic });
+  @ApiBody({ type: AuthDto })
+  @ApiOkResponse({ description: 'Login successful' })
+  @ApiUnauthorizedResponse({ description: 'Invalid username or password' })
+  async login(@Body() loginDto: AuthDto) {
+    return this.authService.login(loginDto);
   }
 
-  @ApiOperation({ summary: 'Get user profile' })
-  @ApiOkResponse({
-    description: 'User profile retrieved.',
-    type: UserDto,
-  })
-  @ApiUnauthorizedResponse({
-    description: 'User is not authenticated.',
-  })
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @Get('profile')
-  async getProfile(@User() user: UserDto) {
-    return user;
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: 'Fetch user profile' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async getProfile(@User() user: ReqUser) {
+    return this.authService.getProfile(user.id);
+  }
+
+  @Patch('profile')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: 'Profile updated' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async updateProfile(@User() user: ReqUser, @Body() body: AuthDto) {
+    return this.authService.updateProfile(user.id, body);
+  }
+
+  @Patch('profile-pic')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiOkResponse({ description: 'Profile picture updated' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async updateProfilePic(
+    @User() user: ReqUser,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const { url } = await this.authService.updateProfilePic(user.id, file);
+    return { url };
   }
 }

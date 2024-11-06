@@ -12,7 +12,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
-import { Media } from '@prisma/client';
 
 @Injectable()
 export class CloudflareR2Service {
@@ -39,7 +38,7 @@ export class CloudflareR2Service {
   async uploadFile(
     fileBuffer: Buffer,
     fileMimeType: string,
-  ): Promise<Pick<Media, 'key' | 'url'>> {
+  ): Promise<{ key: string; url: string }> {
     const fileKey = uuidv4() + '.' + fileMimeType.split('/')[1];
     this.logger.log(
       'info',

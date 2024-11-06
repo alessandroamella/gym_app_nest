@@ -8,32 +8,24 @@ datasource db {
 }
 
 model User {
-  id         Int             @id @default(autoincrement())
-  username   String          @unique
-  workouts   Workout[]
-  invitation UserInvitation?
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
-  profilePic String?
+  id            Int       @id @default(autoincrement())
+  username      String    @unique
+  workouts      Workout[]
+  pwHash        String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  profilePicKey String?
+  profilePicUrl String?
 
   @@index([username]) // to speed up lookups by username
 }
 
-model UserInvitation {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @unique
-  user      User     @relation(fields: [userId], references: [id])
-  code      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model WorkoutMedia {
-  id        String   @id
+  key       String   @id
   url       String   @unique
   mime      String
   workoutId Int
-  workout   Workout  @relation(fields: [workoutId], references: [id])
+  workout   Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -45,7 +37,7 @@ model Workout {
   durationMin Int
   notes       String?
   userId      Int
-  user        User           @relation(fields: [userId], references: [id])
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   media       WorkoutMedia[]

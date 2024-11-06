@@ -5,13 +5,17 @@ import { ValidationPipe } from '@nestjs/common';
 import { useContainer } from 'class-validator';
 import { urlencoded, json } from 'express';
 import helmet from 'helmet';
-import { createNestWinstonLogger } from 'logger';
 import { ConfigService } from '@nestjs/config';
+import {
+  WINSTON_MODULE_NEST_PROVIDER,
+  WINSTON_MODULE_PROVIDER,
+} from 'nest-winston';
+import { Logger } from 'winston';
 
 async function bootstrap() {
-  const logger = createNestWinstonLogger();
+  const app = await NestFactory.create(AppModule);
 
-  const app = await NestFactory.create(AppModule, { logger });
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
 
@@ -49,7 +53,9 @@ async function bootstrap() {
 
   await app.listen(PORT, HOST);
 
-  logger.log(`Server is running on http://${HOST}:${PORT}`);
+  const logger = app.get(WINSTON_MODULE_PROVIDER) as Logger;
+
+  logger.info(`Server is running on http://${HOST}:${PORT}`);
 }
 
 bootstrap();
