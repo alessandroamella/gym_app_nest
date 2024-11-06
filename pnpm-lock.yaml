@@ -41,9 +41,6 @@ importers:
       class-validator:
         specifier: ^0.14.1
         version: 0.14.1
-      codice-fiscale-js:
-        specifier: ^2.3.22
-        version: 2.3.22
       dayjs:
         specifier: ^1.11.13
         version: 1.11.13
@@ -1572,9 +1569,6 @@ packages:
   co@4.6.0:
     resolution: {integrity: sha512-QVb0dM5HvG+uaxitm8wONl7jltx8dqhfU33DcqtOZcLSVIKSDDLDi7+0LbAKiyI8hD9u42m2YxXSkMGWThaecQ==}
     engines: {iojs: '>= 1.0.0', node: '>= 0.12.0'}
-
-  codice-fiscale-js@2.3.22:
-    resolution: {integrity: sha512-at+XQ3kTgIq0qMoBmP4UtrSlYvHp5X5KGEB0ZKykydMnYC28zBAbdbFDu7CsatlfoOa1vH4qBpNkOCXp/YqMmA==}
 
   collect-v8-coverage@1.0.2:
     resolution: {integrity: sha512-lHl4d5/ONEbLlJvaJNtsF/Lz+WvB07u2ycqTYbdrq7UypDXailES4valYb2eWiJFxZlVmpGekfqoxQhzyFdT4Q==}
@@ -5618,8 +5612,6 @@ snapshots:
   clone@1.0.4: {}
 
   co@4.6.0: {}
-
-  codice-fiscale-js@2.3.22: {}
 
   collect-v8-coverage@1.0.2: {}
 

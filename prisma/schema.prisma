@@ -7,73 +7,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  USER
-  DEV
-  OWNER
-}
-
-enum Gender {
-  M
-  F
-}
-
 model User {
-  id           Int       @id @default(autoincrement())
-  fiscalCode   String    @unique
-  username     String
-  gender       Gender
-  birthdate    DateTime
-  role         UserRole  @default(USER)
-  profilePicId String?   @unique
-  profilePic   Media?    @relation(fields: [profilePicId], references: [key])
-  workouts     Workout[] @relation("UserWorkout")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime?
+  id         Int             @id @default(autoincrement())
+  username   String          @unique
+  workouts   Workout[]
+  invitation UserInvitation?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  profilePic String?
+
+  @@index([username]) // to speed up lookups by username
 }
 
-enum WorkoutType {
-  GYM
-  CARDIO
-  YOGA
-  SPORT
-  OTHER
+model UserInvitation {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id])
+  code      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-enum MediaType {
-  IMAGE
-  VIDEO
-}
+model WorkoutMedia {
+  id        String   @id
+  url       String   @unique
+  mime      String
+  workoutId Int
+  workout   Workout  @relation(fields: [workoutId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-enum MediaCategory {
-  PROFILE_PIC
-  WORKOUT
-}
-
-model Media {
-  key            String        @id
-  url            String        @unique
-  category       MediaCategory
-  type           MediaType
-  workoutId      Int? // if used in a workout
-  mime           String
-  workout        Workout?      @relation(fields: [workoutId], references: [id])
-  userProfilePic User?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  deletedAt      DateTime?
+  @@index([workoutId])
 }
 
 model Workout {
-  id        Int         @id @default(autoincrement())
-  startTime DateTime
-  endTime   DateTime
-  type      WorkoutType
-  notes     String?
-  media     Media[]
-  users     User[]      @relation("UserWorkout")
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  deletedAt DateTime?
+  id          Int            @id @default(autoincrement())
+  durationMin Int
+  notes       String?
+  userId      Int
+  user        User           @relation(fields: [userId], references: [id])
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  media       WorkoutMedia[]
+
+  @@index([userId, createdAt]) // so we can query by user and date
 }
