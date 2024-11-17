@@ -16,6 +16,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   profilePicKey String?
   profilePicUrl String?
+  comments      Comment[]
 
   @@index([username]) // to speed up lookups by username
 }
@@ -32,6 +33,20 @@ model WorkoutMedia {
   @@index([workoutId])
 }
 
+model Comment {
+  id        Int      @id @default(autoincrement())
+  text      String
+  workoutId Int
+  workout   Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workoutId])
+  @@index([userId])
+}
+
 model Workout {
   id          Int            @id @default(autoincrement())
   durationMin Int
@@ -40,6 +55,7 @@ model Workout {
   user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
+  comments    Comment[]
   media       WorkoutMedia[]
 
   @@index([userId, createdAt]) // so we can query by user and date

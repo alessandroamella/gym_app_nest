@@ -5,6 +5,7 @@ import type { CreateWorkoutMediaDto } from './dto/create-workout-media.dto';
 import type { DeleteWorkoutMediaDto } from './dto/delete-workout-media.dto';
 import { CloudflareR2Service } from 'cloudflare-r2/cloudflare-r2.service';
 import { PrismaService } from 'prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class WorkoutService {
@@ -12,6 +13,26 @@ export class WorkoutService {
     private prisma: PrismaService,
     private cloudflareR2Service: CloudflareR2Service,
   ) {}
+
+  private readonly workoutSelect: Prisma.WorkoutSelect = {
+    id: true,
+    durationMin: true,
+    createdAt: true,
+    notes: true,
+    media: {
+      select: {
+        url: true,
+        mime: true,
+      },
+    },
+    user: {
+      select: {
+        id: true,
+        username: true,
+        profilePicUrl: true,
+      },
+    },
+  };
 
   async create(userId: number, createWorkoutDto: CreateWorkoutDto) {
     const workout = await this.prisma.workout.create({
@@ -23,17 +44,41 @@ export class WorkoutService {
     return workout;
   }
 
-  async findAllByUser(userId: number) {
+  async findAll() {
     return this.prisma.workout.findMany({
-      where: { userId },
-      include: { media: true },
+      select: {
+        ...this.workoutSelect,
+        ...{
+          _count: {
+            select: {
+              comments: true,
+            },
+          },
+        },
+      },
     });
   }
 
   async findOne(userId: number, id: number) {
     const workout = await this.prisma.workout.findFirst({
       where: { id, userId },
-      include: { media: true },
+      select: {
+        ...this.workoutSelect,
+        comments: {
+          select: {
+            id: true,
+            text: true,
+            createdAt: true,
+            user: {
+              select: {
+                id: true,
+                username: true,
+                profilePicUrl: true,
+              },
+            },
+          },
+        },
+      },
     });
     if (!workout) {
       throw new NotFoundException('Workout not found or unauthorized');

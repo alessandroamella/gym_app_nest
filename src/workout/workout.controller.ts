@@ -47,8 +47,8 @@ export class WorkoutController {
   @Get()
   @ApiOkResponse({ description: 'List of workouts' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
-  async findAll(@User() user: ReqUser) {
-    return this.workoutService.findAllByUser(user.id);
+  async findAll() {
+    return this.workoutService.findAll();
   }
 
   @Get(':id')
