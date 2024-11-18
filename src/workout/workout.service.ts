@@ -56,6 +56,9 @@ export class WorkoutService {
           },
         },
       },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
   }
 
@@ -76,6 +79,9 @@ export class WorkoutService {
                 profilePicUrl: true,
               },
             },
+          },
+          orderBy: {
+            createdAt: 'desc',
           },
         },
       },
