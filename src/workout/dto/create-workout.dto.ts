@@ -1,11 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateWorkoutDto {
+  @Type(() => Number) // Explicitly transform to number
   @ApiProperty({
-    description: 'Workout name',
+    description: 'Workout minutes',
   })
-  @IsNotEmpty()
   @IsNumber()
   durationMin: number;
 

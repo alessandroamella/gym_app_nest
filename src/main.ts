@@ -32,7 +32,10 @@ async function bootstrap() {
       transform: true,
       whitelist: true,
       forbidNonWhitelisted: false,
-      transformOptions: { enableImplicitConversion: true },
+      transformOptions: {
+        enableImplicitConversion: true,
+        exposeDefaultValues: true,
+      },
     }),
   );
   app.use(helmet());

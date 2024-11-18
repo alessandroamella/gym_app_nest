@@ -1,18 +1,38 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { WorkoutMediaDto } from './workout-media.dto';
+import { WorkoutUserDto } from './get-workout.dto';
 
-export class WorkoutUserDto {
+export class GetAllWorkoutsResponseDto {
   @ApiProperty({ example: 1 })
   id: number;
 
-  @ApiProperty({ example: 'john_doe' })
-  username: string;
+  @ApiProperty({ example: 45 })
+  durationMin: number;
+
+  @ApiProperty()
+  createdAt: Date;
+
+  @ApiProperty({ example: 'Felt great today!', nullable: true })
+  notes: string | null;
+
+  @ApiProperty({ type: [WorkoutMediaDto] })
+  media: WorkoutMediaDto[];
+
+  @ApiProperty({ type: WorkoutUserDto })
+  user: WorkoutUserDto;
 
   @ApiProperty({
-    example: 'https://storage.cloudflare.com/profile-pic-123.jpg',
-    nullable: true,
+    type: 'object',
+    properties: {
+      comments: {
+        type: 'object',
+        properties: {
+          count: { type: 'number', example: 5 },
+        },
+      },
+    },
   })
-  profilePicUrl: string | null;
+  _count: {
+    comments: number;
+  };
 }
-
-export class CommentUserDto extends WorkoutUserDto {}
