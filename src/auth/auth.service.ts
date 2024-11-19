@@ -9,6 +9,7 @@ import bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { CloudflareR2Service } from 'cloudflare-r2/cloudflare-r2.service';
 import { PrismaService } from 'prisma/prisma.service';
+import { GetProfileDto } from './dto/get-profile.dto';
 
 @Injectable()
 export class AuthService {
@@ -31,17 +32,40 @@ export class AuthService {
     return { token };
   }
 
-  async getProfile(userId: number) {
+  async getProfile(userId: number): Promise<GetProfileDto> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, username: true, profilePicUrl: true },
+      select: {
+        id: true,
+        username: true,
+        profilePicUrl: true,
+        createdAt: true,
+        _count: {
+          select: {
+            workouts: true,
+            comments: true,
+          },
+        },
+      },
     });
 
     if (!user) {
       throw new UnauthorizedException();
     }
 
-    return user;
+    const workouts = await this.prisma.workout.findMany({
+      where: { userId },
+      select: { durationMin: true },
+    });
+
+    // every 45 minutes of workout = 1 point
+    // FLOOR the result (e.g. 44 minutes = 0 points, 45 minutes = 1 point)
+    const points =
+      workouts
+        .map((workout) => Math.floor(workout.durationMin / 45))
+        .reduce((a, b) => a + b, 0) || 0;
+
+    return { ...user, points };
   }
 
   async updateProfile(userId: number, body: AuthDto) {

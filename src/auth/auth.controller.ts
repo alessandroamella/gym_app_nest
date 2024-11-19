@@ -21,6 +21,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { GetProfileDto } from './dto/get-profile.dto';
 
 @Controller('auth')
 @ApiTags('auth')
@@ -38,7 +39,7 @@ export class AuthController {
   @Get('profile')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  @ApiOkResponse({ description: 'Fetch user profile' })
+  @ApiOkResponse({ description: 'Fetch user profile', type: GetProfileDto })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   async getProfile(@User() user: ReqUser) {
     return this.authService.getProfile(user.id);
