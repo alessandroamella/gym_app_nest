@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { WorkoutMediaDto } from './workout-media.dto';
-import { WorkoutUserDto } from './get-workout.dto';
+import { WorkoutUserDto } from './workout-user.dto';
 
 export class GetAllWorkoutsResponseDto {
   @ApiProperty({ example: 1 })
@@ -35,4 +35,7 @@ export class GetAllWorkoutsResponseDto {
   _count: {
     comments: number;
   };
+
+  @ApiProperty()
+  points: number;
 }

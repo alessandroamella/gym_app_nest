@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -22,9 +23,13 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOkResponse,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { PaginationQueryDto } from './dto/pagination-query.dto';
+import { GetAllWorkoutsResponseDto } from './dto/get-all-workouts.dto';
+import { GetWorkoutResponseDto } from './dto/get-workout.dto';
 
 @Controller('workout')
 @ApiTags('workout')
@@ -45,14 +50,32 @@ export class WorkoutController {
   }
 
   @Get()
-  @ApiOkResponse({ description: 'List of workouts' })
+  @ApiOkResponse({
+    description: 'List of workouts',
+    type: [GetAllWorkoutsResponseDto],
+  })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
-  async findAll() {
-    return this.workoutService.findAll();
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items to return',
+  })
+  @ApiQuery({
+    name: 'skip',
+    required: false,
+    type: Number,
+    description: 'Number of items to skip',
+  })
+  async findAll(@Query() query: PaginationQueryDto) {
+    return this.workoutService.findAll(query);
   }
 
   @Get(':id')
-  @ApiOkResponse({ description: 'Workout details' })
+  @ApiOkResponse({
+    description: 'Workout details',
+    type: GetWorkoutResponseDto,
+  })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   async findOne(@User() user: ReqUser, @Param('id') id: number) {
     return this.workoutService.findOne(user.id, id);

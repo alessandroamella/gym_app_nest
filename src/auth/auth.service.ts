@@ -10,12 +10,14 @@ import { JwtService } from '@nestjs/jwt';
 import { CloudflareR2Service } from 'cloudflare-r2/cloudflare-r2.service';
 import { PrismaService } from 'prisma/prisma.service';
 import { GetProfileDto } from './dto/get-profile.dto';
+import { WorkoutService } from 'workout/workout.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private workoutService: WorkoutService,
     private cloudflareR2Service: CloudflareR2Service,
   ) {}
 
@@ -62,7 +64,7 @@ export class AuthService {
     // FLOOR the result (e.g. 44 minutes = 0 points, 45 minutes = 1 point)
     const points =
       workouts
-        .map((workout) => Math.floor(workout.durationMin / 45))
+        .map((workout) => this.workoutService.calculatePoints(workout))
         .reduce((a, b) => a + b, 0) || 0;
 
     return { ...user, points };

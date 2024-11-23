@@ -11,5 +11,6 @@ import { AuthService } from 'auth/auth.service';
   imports: [PrismaModule, CloudflareR2Module],
   controllers: [WorkoutController],
   providers: [WorkoutService, PrismaService, AuthService],
+  exports: [WorkoutService],
 })
 export class WorkoutModule {}

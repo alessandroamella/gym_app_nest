@@ -1,19 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { GetAllWorkoutsResponseDto } from './get-all-workouts.dto';
-
-export class WorkoutUserDto {
-  @ApiProperty({ example: 1 })
-  id: number;
-
-  @ApiProperty({ example: 'john_doe' })
-  username: string;
-
-  @ApiProperty({
-    example: 'https://storage.cloudflare.com/profile-pic-123.jpg',
-    nullable: true,
-  })
-  profilePicUrl: string | null;
-}
+import { WorkoutUserDto } from './workout-user.dto';
 
 export class CommentUserDto extends WorkoutUserDto {}
 
@@ -31,7 +18,9 @@ export class WorkoutCommentDto {
   user: CommentUserDto;
 }
 
-export class GetWorkoutResponseDto extends GetAllWorkoutsResponseDto {
+export class GetWorkoutResponseDto extends OmitType(GetAllWorkoutsResponseDto, [
+  '_count',
+]) {
   @ApiProperty({ type: [WorkoutCommentDto] })
   comments: WorkoutCommentDto[];
 }

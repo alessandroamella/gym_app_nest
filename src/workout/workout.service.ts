@@ -5,7 +5,10 @@ import type { CreateWorkoutMediaDto } from './dto/create-workout-media.dto';
 import type { DeleteWorkoutMediaDto } from './dto/delete-workout-media.dto';
 import { CloudflareR2Service } from 'cloudflare-r2/cloudflare-r2.service';
 import { PrismaService } from 'prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, Workout } from '@prisma/client';
+import { PaginationQueryDto } from './dto/pagination-query.dto';
+import { GetAllWorkoutsResponseDto } from './dto/get-all-workouts.dto';
+import { GetWorkoutResponseDto } from './dto/get-workout.dto';
 
 @Injectable()
 export class WorkoutService {
@@ -44,8 +47,11 @@ export class WorkoutService {
     return workout;
   }
 
-  async findAll() {
-    return this.prisma.workout.findMany({
+  async findAll({
+    limit,
+    skip,
+  }: PaginationQueryDto): Promise<GetAllWorkoutsResponseDto[]> {
+    const workouts = await this.prisma.workout.findMany({
       select: {
         ...this.workoutSelect,
         ...{
@@ -56,13 +62,23 @@ export class WorkoutService {
           },
         },
       },
+      take: limit,
+      skip,
       orderBy: {
         createdAt: 'desc',
       },
     });
+    return workouts.map((workout) => ({
+      ...workout,
+      points: this.calculatePoints(workout),
+    }));
   }
 
-  async findOne(userId: number, id: number) {
+  calculatePoints({ durationMin }: Pick<Workout, 'durationMin'>) {
+    return Math.floor(durationMin / 45);
+  }
+
+  async findOne(userId: number, id: number): Promise<GetWorkoutResponseDto> {
     const workout = await this.prisma.workout.findFirst({
       where: { id, userId },
       select: {
@@ -89,7 +105,10 @@ export class WorkoutService {
     if (!workout) {
       throw new NotFoundException('Workout not found or unauthorized');
     }
-    return workout;
+    return {
+      ...workout,
+      points: this.calculatePoints(workout),
+    };
   }
 
   async update(userId: number, id: number, updateWorkoutDto: UpdateWorkoutDto) {
