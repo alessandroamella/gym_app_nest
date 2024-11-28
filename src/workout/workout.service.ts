@@ -9,6 +9,8 @@ import { Prisma, Workout } from '@prisma/client';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { GetAllWorkoutsResponseDto } from './dto/get-all-workouts.dto';
 import { GetWorkoutResponseDto } from './dto/get-workout.dto';
+import _ from 'lodash';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class WorkoutService {
@@ -17,11 +19,20 @@ export class WorkoutService {
     private cloudflareR2Service: CloudflareR2Service,
   ) {}
 
+  private readonly userSelect: Prisma.UserSelect = {
+    id: true,
+    username: true,
+    profilePicUrl: true,
+    points: true,
+  };
+
   private readonly workoutSelect: Prisma.WorkoutSelect = {
     id: true,
-    durationMin: true,
+    startDate: true,
+    endDate: true,
     createdAt: true,
     notes: true,
+    points: true,
     media: {
       select: {
         url: true,
@@ -29,29 +40,15 @@ export class WorkoutService {
       },
     },
     user: {
-      select: {
-        id: true,
-        username: true,
-        profilePicUrl: true,
-      },
+      select: this.userSelect,
     },
   };
-
-  async create(userId: number, createWorkoutDto: CreateWorkoutDto) {
-    const workout = await this.prisma.workout.create({
-      data: {
-        ...createWorkoutDto,
-        userId,
-      },
-    });
-    return workout;
-  }
 
   async findAll({
     limit,
     skip,
   }: PaginationQueryDto): Promise<GetAllWorkoutsResponseDto[]> {
-    const workouts = await this.prisma.workout.findMany({
+    return this.prisma.workout.findMany({
       select: {
         ...this.workoutSelect,
         ...{
@@ -65,21 +62,13 @@ export class WorkoutService {
       take: limit,
       skip,
       orderBy: {
-        createdAt: 'desc',
+        startDate: 'desc',
       },
     });
-    return workouts.map((workout) => ({
-      ...workout,
-      points: this.calculatePoints(workout),
-    }));
-  }
-
-  calculatePoints({ durationMin }: Pick<Workout, 'durationMin'>) {
-    return Math.floor(durationMin / 45);
   }
 
   async findOne(userId: number, id: number): Promise<GetWorkoutResponseDto> {
-    const workout = await this.prisma.workout.findFirst({
+    const workout = this.prisma.workout.findUnique({
       where: { id, userId },
       select: {
         ...this.workoutSelect,
@@ -89,11 +78,7 @@ export class WorkoutService {
             text: true,
             createdAt: true,
             user: {
-              select: {
-                id: true,
-                username: true,
-                profilePicUrl: true,
-              },
+              select: this.userSelect,
             },
           },
           orderBy: {
@@ -102,13 +87,44 @@ export class WorkoutService {
         },
       },
     });
+
     if (!workout) {
       throw new NotFoundException('Workout not found or unauthorized');
     }
-    return {
-      ...workout,
-      points: this.calculatePoints(workout),
-    };
+
+    return workout;
+  }
+
+  public calculatePoints({
+    startDate,
+    endDate,
+  }: Pick<Workout, 'startDate' | 'endDate'>) {
+    const durationMin = dayjs(endDate).diff(startDate, 'minutes');
+    return Math.floor(durationMin / 45);
+  }
+
+  async create(userId: number, createWorkoutDto: CreateWorkoutDto) {
+    return this.prisma.$transaction(async (tx) => {
+      const workout = await tx.workout.create({
+        data: {
+          ...createWorkoutDto,
+          points: this.calculatePoints(createWorkoutDto),
+          userId,
+        },
+        select: this.workoutSelect,
+      });
+
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          points: {
+            increment: workout.points,
+          },
+        },
+      });
+
+      return workout;
+    });
   }
 
   async update(userId: number, id: number, updateWorkoutDto: UpdateWorkoutDto) {
@@ -118,9 +134,24 @@ export class WorkoutService {
     if (!workout) {
       throw new NotFoundException('Workout not found or unauthorized');
     }
+    const newWorkout = {
+      ...workout,
+      ...updateWorkoutDto,
+    };
     return this.prisma.workout.update({
       where: { id },
-      data: updateWorkoutDto,
+      data: {
+        ...updateWorkoutDto,
+        points: this.calculatePoints(newWorkout),
+        user: {
+          update: {
+            points: {
+              increment: this.calculatePoints(newWorkout) - workout.points,
+            },
+          },
+        },
+      },
+      select: this.workoutSelect,
     });
   }
 
@@ -131,7 +162,20 @@ export class WorkoutService {
     if (!workout) {
       throw new NotFoundException('Workout not found or unauthorized');
     }
-    return this.prisma.workout.delete({ where: { id } });
+    return this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          points: {
+            decrement: workout.points,
+          },
+        },
+      });
+      return tx.workout.delete({
+        where: { id },
+        select: this.workoutSelect,
+      });
+    });
   }
 
   async createWorkoutMedia(

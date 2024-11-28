@@ -1,19 +1,8 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { PickType } from '@nestjs/swagger';
+import { GetAllWorkoutsResponseDto } from './get-all-workouts.dto';
 
-export class CreateWorkoutDto {
-  @Type(() => Number) // Explicitly transform to number
-  @ApiProperty({
-    description: 'Workout minutes',
-  })
-  @IsNumber()
-  durationMin: number;
-
-  @ApiPropertyOptional({
-    description: 'Workout notes',
-  })
-  @IsOptional()
-  @IsString()
-  notes?: string;
-}
+export class CreateWorkoutDto extends PickType(GetAllWorkoutsResponseDto, [
+  'startDate',
+  'endDate',
+  'notes',
+]) {}

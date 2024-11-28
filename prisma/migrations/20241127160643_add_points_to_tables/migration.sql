@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "points" INTEGER NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "Workout" ADD COLUMN     "points" INTEGER NOT NULL DEFAULT 0;

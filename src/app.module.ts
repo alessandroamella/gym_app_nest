@@ -9,6 +9,7 @@ import { colorize } from 'json-colorizer';
 import { CloudflareR2Module } from './cloudflare-r2/cloudflare-r2.module';
 import { configValidationSchema } from 'config/config.schema';
 import { CommentModule } from './comment/comment.module';
+import { FirebaseModule } from './firebase/firebase.module';
 import winston from 'winston';
 
 @Module({
@@ -57,6 +58,7 @@ import winston from 'winston';
     }),
     CloudflareR2Module,
     CommentModule,
+    FirebaseModule,
   ],
 })
 export class AppModule {}

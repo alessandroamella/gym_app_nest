@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  HttpStatus,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -21,12 +22,39 @@ export class AuthService {
     private cloudflareR2Service: CloudflareR2Service,
   ) {}
 
-  async login(loginDto: AuthDto) {
+  async createUser(body: AuthDto) {
+    const { username, password } = body;
+
+    // username must be unique
+    const existingUser = await this.prisma.user.findUnique({
+      where: { username },
+    });
+    if (existingUser) {
+      throw new BadRequestException('Username already taken');
+    }
+
+    const pwHash = await bcrypt.hash(password, 10);
+
+    await this.prisma.user.create({
+      data: { username, pwHash },
+    });
+  }
+
+  async changePw(userId: number, password: string) {
+    const pwHash = await bcrypt.hash(password, 10);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { pwHash },
+    });
+  }
+
+  async login(authDto: AuthDto) {
     const user = await this.prisma.user.findUnique({
-      where: { username: loginDto.username },
+      where: { username: authDto.username },
     });
 
-    if (!user || !(await bcrypt.compare(loginDto.password, user.pwHash))) {
+    if (!user || !(await bcrypt.compare(authDto.password, user.pwHash))) {
       throw new BadRequestException('Invalid username or password');
     }
 
@@ -40,6 +68,7 @@ export class AuthService {
       select: {
         id: true,
         username: true,
+        points: true,
         profilePicUrl: true,
         createdAt: true,
         _count: {
@@ -55,19 +84,7 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-    const workouts = await this.prisma.workout.findMany({
-      where: { userId },
-      select: { durationMin: true },
-    });
-
-    // every 45 minutes of workout = 1 point
-    // FLOOR the result (e.g. 44 minutes = 0 points, 45 minutes = 1 point)
-    const points =
-      workouts
-        .map((workout) => this.workoutService.calculatePoints(workout))
-        .reduce((a, b) => a + b, 0) || 0;
-
-    return { ...user, points };
+    return user;
   }
 
   async updateProfile(userId: number, body: AuthDto) {
@@ -103,5 +120,17 @@ export class AuthService {
       data: { profilePicKey: key, profilePicUrl: url },
     });
     return { url };
+  }
+
+  async setDeviceToken(userId: number, token: string): Promise<HttpStatus.OK> {
+    await this.prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        deviceToken: token,
+      },
+    });
+    return HttpStatus.OK;
   }
 }

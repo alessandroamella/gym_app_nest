@@ -1,15 +1,9 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { PickType } from '@nestjs/swagger';
+import { GetProfileDto } from 'auth/dto/get-profile.dto';
 
-export class WorkoutUserDto {
-  @ApiProperty({ example: 1 })
-  id: number;
-
-  @ApiProperty({ example: 'john_doe' })
-  username: string;
-
-  @ApiProperty({
-    example: 'https://storage.cloudflare.com/profile-pic-123.jpg',
-    nullable: true,
-  })
-  profilePicUrl: string | null;
-}
+export class WorkoutUserDto extends PickType(GetProfileDto, [
+  'id',
+  'username',
+  'profilePicUrl',
+  'points',
+]) {}

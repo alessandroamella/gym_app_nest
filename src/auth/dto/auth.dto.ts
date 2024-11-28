@@ -1,13 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, MinLength } from 'class-validator';
+import { ApiProperty, PickType } from '@nestjs/swagger';
+import { IsNotEmpty, IsString } from 'class-validator';
+import { GetProfileDto } from './get-profile.dto';
 
-export class AuthDto {
-  @ApiProperty({ example: 'username' })
-  @IsString()
-  readonly username: string;
-
+export class AuthDto extends PickType(GetProfileDto, ['username']) {
   @ApiProperty({ example: 'password' })
   @IsString()
-  @MinLength(1)
+  @IsNotEmpty()
   readonly password: string;
 }

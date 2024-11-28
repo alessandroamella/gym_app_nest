@@ -12,8 +12,10 @@ model User {
   username      String    @unique
   workouts      Workout[]
   pwHash        String
+  points        Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  deviceToken   String? // for push notifications
   profilePicKey String?
   profilePicUrl String?
   comments      Comment[]
@@ -48,15 +50,17 @@ model Comment {
 }
 
 model Workout {
-  id          Int            @id @default(autoincrement())
-  durationMin Int
-  notes       String?
-  userId      Int
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  comments    Comment[]
-  media       WorkoutMedia[]
+  id        Int            @id @default(autoincrement())
+  startDate DateTime
+  endDate   DateTime
+  points    Int
+  notes     String?
+  userId    Int
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  comments  Comment[]
+  media     WorkoutMedia[]
 
   @@index([userId, createdAt]) // so we can query by user and date
 }
