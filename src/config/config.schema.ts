@@ -5,6 +5,7 @@ export const configValidationSchema = Joi.object({
   PORT: Joi.number().default(3000),
   JWT_SECRET: Joi.string().required(),
   DATABASE_URL: Joi.string().uri().required(),
+  DIRECT_URL: Joi.string().uri().required(),
   R2_BUCKET_NAME: Joi.string().required(),
   R2_ENDPOINT_URL: Joi.string().uri().required(),
   R2_ACCESS_KEY_ID: Joi.string().required(),
