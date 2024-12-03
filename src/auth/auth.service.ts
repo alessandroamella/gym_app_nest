@@ -8,19 +8,19 @@ import {
 import type { AuthDto } from './dto/auth.dto';
 import bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { CloudflareR2Service } from 'cloudflare-r2/cloudflare-r2.service';
 import { PrismaService } from 'prisma/prisma.service';
 import { GetProfileDto } from './dto/get-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Logger } from 'winston';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { SharedService } from 'shared/shared.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private cloudflareR2Service: CloudflareR2Service,
+    private shared: SharedService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
@@ -71,7 +71,9 @@ export class AuthService {
         id: true,
         username: true,
         points: true,
-        profilePicUrl: true,
+        profilePic: {
+          select: this.shared.mediaOnlyURLSelect,
+        },
         createdAt: true,
         _count: {
           select: {
@@ -110,18 +112,6 @@ export class AuthService {
       where: { id: userId },
       data: updateData,
     });
-  }
-
-  async updateProfilePic(userId: number, file: Express.Multer.File) {
-    const { key, url } = await this.cloudflareR2Service.uploadFile(
-      file.buffer,
-      file.mimetype,
-    );
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { profilePicKey: key, profilePicUrl: url },
-    });
-    return { url };
   }
 
   async setDeviceToken(userId: number, token: string): Promise<HttpStatus.OK> {

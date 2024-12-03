@@ -1,0 +1,95 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import type { CreatePostDto } from './dto/create-post.dto';
+import { PrismaService } from 'prisma/prisma.service';
+import { SharedService } from 'shared/shared.service';
+import { PaginationQueryDto } from 'shared/dto/pagination-query.dto';
+import { GetAllPostsResponseDto } from './dto/get-all-post.dto';
+import { CloudflareR2Service } from 'cloudflare-r2/cloudflare-r2.service';
+import { MediaCategory } from '@prisma/client';
+
+@Injectable()
+export class PostService {
+  constructor(
+    private prisma: PrismaService,
+    private shared: SharedService,
+    private r2: CloudflareR2Service,
+  ) {}
+
+  private readonly postSelect = {
+    id: true,
+    text: true,
+    createdAt: true,
+    likes: {
+      select: {
+        user: {
+          select: this.shared.userParentResourceSelect,
+        },
+        createdAt: true,
+      },
+    },
+    media: {
+      select: this.shared.mediaWithMimeSelect,
+    },
+    user: {
+      select: this.shared.userParentResourceSelect,
+    },
+  };
+
+  async findAll({
+    limit,
+    skip,
+  }: PaginationQueryDto): Promise<GetAllPostsResponseDto[]> {
+    return this.prisma.motivationPost.findMany({
+      where: {
+        media: {
+          some: {
+            // at least one media item
+            category: MediaCategory.POST,
+          },
+        },
+      },
+      select: this.postSelect,
+      take: limit,
+      skip,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async create(userId: number, createPostDto: CreatePostDto) {
+    return this.prisma.motivationPost.create({
+      data: {
+        ...createPostDto,
+        userId,
+      },
+      select: this.postSelect,
+    });
+  }
+
+  async remove(userId: number, id: number) {
+    const post = await this.prisma.motivationPost.findFirst({
+      where: { id, userId },
+      select: {
+        media: {
+          select: {
+            key: true,
+          },
+        },
+      },
+    });
+    if (!post) {
+      throw new NotFoundException('Post not found or unauthorized');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      for (const { key } of post.media) {
+        await this.r2.deleteFile(key);
+      }
+      await tx.motivationPost.delete({
+        where: { id },
+        select: this.postSelect,
+      });
+    });
+  }
+}

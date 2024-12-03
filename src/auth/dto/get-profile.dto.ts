@@ -8,10 +8,10 @@ import {
   IsObject,
   IsNotEmpty,
   Min,
-  IsUrl,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CommentCountDto } from 'workout/dto/comment-count.dto';
+import { ProfilePicDto } from './profile-pic.dto';
 
 class ProfileCountDto extends CommentCountDto {
   @ApiProperty({ description: 'Number of workouts created by the user' })
@@ -22,6 +22,7 @@ class ProfileCountDto extends CommentCountDto {
 export class GetProfileDto {
   @ApiProperty({ description: 'User ID', example: 1 })
   @IsInt()
+  @Type(() => Number)
   id: number;
 
   @ApiProperty({ description: 'Username', example: 'johndoe' })
@@ -40,9 +41,9 @@ export class GetProfileDto {
     required: false,
   })
   @IsOptional()
-  @IsString()
-  @IsUrl()
-  profilePicUrl?: string;
+  @Type(() => ProfilePicDto)
+  @IsObject()
+  profilePic?: ProfilePicDto;
 
   @ApiProperty({ description: 'Account creation timestamp' })
   @IsDate()

@@ -10,6 +10,9 @@ import { CloudflareR2Module } from './cloudflare-r2/cloudflare-r2.module';
 import { configValidationSchema } from 'config/config.schema';
 import { CommentModule } from './comment/comment.module';
 import { FirebaseModule } from './firebase/firebase.module';
+import { MediaModule } from './media/media.module';
+import { PostModule } from './post/post.module';
+import { SharedModule } from './shared/shared.module';
 import winston from 'winston';
 
 @Module({
@@ -59,6 +62,9 @@ import winston from 'winston';
     CloudflareR2Module,
     CommentModule,
     FirebaseModule,
+    MediaModule,
+    PostModule,
+    SharedModule,
   ],
 })
 export class AppModule {}

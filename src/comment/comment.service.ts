@@ -1,4 +1,3 @@
-// comment/comment.service.ts
 import {
   Injectable,
   NotFoundException,
@@ -6,17 +5,20 @@ import {
 } from '@nestjs/common';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { PrismaService } from 'prisma/prisma.service';
+import { SharedService } from 'shared/shared.service';
 
 @Injectable()
 export class CommentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private shared: SharedService,
+  ) {}
 
   async create(
     userId: number,
     workoutId: number,
     createCommentDto: CreateCommentDto,
   ) {
-    // Check if the workout exists and belongs to the user
     const workout = await this.prisma.workout.findUnique({
       where: { id: workoutId },
     });
@@ -37,7 +39,14 @@ export class CommentService {
   async findAll(workoutId: number) {
     return this.prisma.comment.findMany({
       where: { workoutId },
-      include: { user: { select: { username: true, profilePicUrl: true } } }, // Include username for comments
+      include: {
+        user: {
+          select: {
+            username: true,
+            profilePic: { select: this.shared.mediaOnlyURLSelect },
+          },
+        },
+      },
     });
   }
 

@@ -10,27 +10,15 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { MediaDto } from '../../media/dto/media.dto';
-import { CommentCountDto } from './comment-count.dto';
 import { UserParentResourceDto } from 'shared/dto/user-parent-resource.dto';
 import { NullableType } from 'joi';
+import { PostLikesDto } from './post-likes.dto';
 
-export class GetAllWorkoutsResponseDto {
+export class GetAllPostsResponseDto {
   @ApiProperty({ example: 1 })
   @IsInt()
   @Type(() => Number)
   id: number;
-
-  @ApiProperty()
-  @IsDate()
-  @Type(() => Date)
-  @IsNotEmpty()
-  startDate: Date;
-
-  @ApiProperty()
-  @IsDate()
-  @Type(() => Date)
-  @IsNotEmpty()
-  endDate: Date;
 
   @ApiProperty()
   @IsDate()
@@ -41,7 +29,7 @@ export class GetAllWorkoutsResponseDto {
   @ApiProperty({ example: 'Felt great today!', nullable: true })
   @IsOptional()
   @IsString()
-  notes?: NullableType<string>;
+  text?: NullableType<string>;
 
   @ApiProperty({ type: [MediaDto] })
   @IsArray()
@@ -54,12 +42,9 @@ export class GetAllWorkoutsResponseDto {
   @Type(() => UserParentResourceDto)
   user: UserParentResourceDto;
 
-  @ApiProperty({ type: CommentCountDto })
-  @ValidateNested()
-  @Type(() => CommentCountDto)
-  _count: CommentCountDto;
-
-  @ApiProperty()
-  @IsInt()
-  points: number;
+  @ApiProperty({ type: [PostLikesDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PostLikesDto)
+  likes: PostLikesDto[];
 }

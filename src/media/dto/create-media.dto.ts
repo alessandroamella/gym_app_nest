@@ -1,13 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber } from 'class-validator';
 
-export class CreateWorkoutMediaDto {
-  @ApiProperty({
-    description: 'Workout ID',
-  })
-  @IsNumber()
-  workoutId: number;
-
+export class CreateMediaDto {
   @ApiProperty({
     description: 'Media file',
     type: 'string',

@@ -1,9 +1,9 @@
 import { PickType } from '@nestjs/swagger';
 import { GetProfileDto } from 'auth/dto/get-profile.dto';
 
-export class WorkoutUserDto extends PickType(GetProfileDto, [
+export class UserParentResourceDto extends PickType(GetProfileDto, [
   'id',
   'username',
-  'profilePicUrl',
+  'profilePic',
   'points',
 ]) {}

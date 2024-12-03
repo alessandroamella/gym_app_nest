@@ -1,8 +1,6 @@
 import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { GetAllWorkoutsResponseDto } from './get-all-workouts.dto';
-import { WorkoutUserDto } from './workout-user.dto';
-
-export class CommentUserDto extends WorkoutUserDto {}
+import { UserParentResourceDto } from 'shared/dto/user-parent-resource.dto';
 
 export class WorkoutCommentDto {
   @ApiProperty({ example: 1 })
@@ -14,8 +12,8 @@ export class WorkoutCommentDto {
   @ApiProperty()
   createdAt: Date;
 
-  @ApiProperty({ type: CommentUserDto })
-  user: CommentUserDto;
+  @ApiProperty({ type: UserParentResourceDto })
+  user: UserParentResourceDto;
 }
 
 export class GetWorkoutResponseDto extends OmitType(GetAllWorkoutsResponseDto, [

@@ -7,6 +7,7 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
@@ -32,7 +33,7 @@ export class CloudflareR2Service {
       },
     });
 
-    this.logger.log('info', 'CloudflareR2Service initialized');
+    this.logger.info('CloudflareR2Service initialized');
   }
 
   async uploadFile(
@@ -40,8 +41,7 @@ export class CloudflareR2Service {
     fileMimeType: string,
   ): Promise<{ key: string; url: string }> {
     const fileKey = uuidv4() + '.' + fileMimeType.split('/')[1];
-    this.logger.log(
-      'info',
+    this.logger.info(
       `Uploading file with key: ${fileKey} and size ${(fileBuffer.length / 1024).toFixed(1)}kB`,
     );
 
@@ -55,7 +55,7 @@ export class CloudflareR2Service {
 
       await this.s3Client.send(command);
 
-      this.logger.log('info', `File uploaded successfully: ${fileKey}`);
+      this.logger.info(`File uploaded successfully: ${fileKey}`);
       return {
         key: fileKey,
         url: `${this.config.get<string>('R2_PUBLIC_URL')}/${fileKey}`,
@@ -69,7 +69,7 @@ export class CloudflareR2Service {
   }
 
   async deleteFile(key: string): Promise<void> {
-    this.logger.log('info', `Deleting file with key: ${key}`);
+    this.logger.info(`Deleting file with key: ${key}`);
 
     try {
       // Delete the file from the bucket
@@ -80,12 +80,21 @@ export class CloudflareR2Service {
         }),
       );
 
-      this.logger.log('info', `File deleted successfully: ${key}`);
+      this.logger.info(`File deleted successfully: ${key}`);
     } catch (error) {
       this.logger.error('Failed to delete file from Cloudflare R2', { error });
       throw new InternalServerErrorException(
         'Failed to delete file from Cloudflare R2',
       );
     }
+  }
+
+  public async getFile(key: string) {
+    return this.s3Client.send(
+      new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      }),
+    );
   }
 }

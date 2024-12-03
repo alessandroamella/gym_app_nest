@@ -3,21 +3,18 @@ import {
   Controller,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
-  UploadedFile,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthDto } from './dto/auth.dto';
 import { AuthGuard } from './auth.guard';
 import { ReqUser, User } from './user.decorator';
-import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiBody,
-  ApiConsumes,
   ApiOkResponse,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -56,10 +53,10 @@ export class AuthController {
   @ApiOkResponse({ description: 'Password updated' })
   @ApiUnauthorizedResponse({ description: 'Invalid user id' })
   async updatePassword(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() { password }: Omit<AuthDto, 'username'>,
   ) {
-    return this.authService.changePw(+id, password);
+    return this.authService.changePw(id, password);
   }
 
   @Post('login')
@@ -86,29 +83,6 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   async updateProfile(@User() user: ReqUser, @Body() body: UpdateProfileDto) {
     return this.authService.updateProfile(user.id, body);
-  }
-
-  @Patch('profile-pic')
-  @UseGuards(AuthGuard)
-  @ApiBearerAuth()
-  @UseInterceptors(FileInterceptor('file'))
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        file: { type: 'string', format: 'binary' },
-      },
-    },
-  })
-  @ApiOkResponse({ description: 'Profile picture updated' })
-  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
-  async updateProfilePic(
-    @User() user: ReqUser,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    const { url } = await this.authService.updateProfilePic(user.id, file);
-    return { url };
   }
 
   @Patch('device-token')

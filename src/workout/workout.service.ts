@@ -1,32 +1,24 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { CreateWorkoutDto } from './dto/create-workout.dto';
 import type { UpdateWorkoutDto } from './dto/update-workout.dto';
-import type { CreateWorkoutMediaDto } from './dto/create-workout-media.dto';
-import type { DeleteWorkoutMediaDto } from './dto/delete-workout-media.dto';
-import { CloudflareR2Service } from 'cloudflare-r2/cloudflare-r2.service';
 import { PrismaService } from 'prisma/prisma.service';
-import { Prisma, Workout } from '@prisma/client';
-import { PaginationQueryDto } from './dto/pagination-query.dto';
+import { Workout } from '@prisma/client';
 import { GetAllWorkoutsResponseDto } from './dto/get-all-workouts.dto';
 import { GetWorkoutResponseDto } from './dto/get-workout.dto';
-import _ from 'lodash';
 import dayjs from 'dayjs';
+import { SharedService } from 'shared/shared.service';
+import { PaginationQueryDto } from 'shared/dto/pagination-query.dto';
+import { CloudflareR2Service } from 'cloudflare-r2/cloudflare-r2.service';
 
 @Injectable()
 export class WorkoutService {
   constructor(
     private prisma: PrismaService,
-    private cloudflareR2Service: CloudflareR2Service,
+    private shared: SharedService,
+    private r2: CloudflareR2Service,
   ) {}
 
-  private readonly userSelect: Prisma.UserSelect = {
-    id: true,
-    username: true,
-    profilePicUrl: true,
-    points: true,
-  };
-
-  private readonly workoutSelect: Prisma.WorkoutSelect = {
+  private readonly workoutSelect = {
     id: true,
     startDate: true,
     endDate: true,
@@ -34,13 +26,10 @@ export class WorkoutService {
     notes: true,
     points: true,
     media: {
-      select: {
-        url: true,
-        mime: true,
-      },
+      select: this.shared.mediaWithMimeSelect,
     },
     user: {
-      select: this.userSelect,
+      select: this.shared.userParentResourceSelect,
     },
   };
 
@@ -67,9 +56,9 @@ export class WorkoutService {
     });
   }
 
-  async findOne(userId: number, id: number): Promise<GetWorkoutResponseDto> {
-    const workout = this.prisma.workout.findUnique({
-      where: { id, userId },
+  async findOne(id: number): Promise<GetWorkoutResponseDto> {
+    const workout = await this.prisma.workout.findUnique({
+      where: { id },
       select: {
         ...this.workoutSelect,
         comments: {
@@ -78,7 +67,7 @@ export class WorkoutService {
             text: true,
             createdAt: true,
             user: {
-              select: this.userSelect,
+              select: this.shared.userParentResourceSelect,
             },
           },
           orderBy: {
@@ -89,7 +78,7 @@ export class WorkoutService {
     });
 
     if (!workout) {
-      throw new NotFoundException('Workout not found or unauthorized');
+      throw new NotFoundException('Workout not found');
     }
 
     return workout;
@@ -158,11 +147,22 @@ export class WorkoutService {
   async remove(userId: number, id: number) {
     const workout = await this.prisma.workout.findFirst({
       where: { id, userId },
+      select: {
+        points: true,
+        media: {
+          select: {
+            key: true,
+          },
+        },
+      },
     });
     if (!workout) {
       throw new NotFoundException('Workout not found or unauthorized');
     }
     return this.prisma.$transaction(async (tx) => {
+      for (const { key } of workout.media) {
+        await this.r2.deleteFile(key);
+      }
       await tx.user.update({
         where: { id: userId },
         data: {
@@ -175,51 +175,6 @@ export class WorkoutService {
         where: { id },
         select: this.workoutSelect,
       });
-    });
-  }
-
-  async createWorkoutMedia(
-    userId: number,
-    createWorkoutMediaDto: CreateWorkoutMediaDto,
-  ) {
-    const workout = await this.prisma.workout.findFirst({
-      where: { id: createWorkoutMediaDto.workoutId, userId },
-    });
-    if (!workout) {
-      throw new NotFoundException('Workout not found or unauthorized');
-    }
-    const { key, url } = await this.cloudflareR2Service.uploadFile(
-      createWorkoutMediaDto.file.buffer,
-      createWorkoutMediaDto.file.mimetype,
-    );
-    const workoutMedia = await this.prisma.workoutMedia.create({
-      data: {
-        key,
-        url,
-        mime: createWorkoutMediaDto.file.mimetype,
-        workoutId: createWorkoutMediaDto.workoutId,
-      },
-      select: { key: true, url: true },
-    });
-    return workoutMedia;
-  }
-
-  async deleteWorkoutMedia(
-    userId: number,
-    deleteWorkoutMediaDto: DeleteWorkoutMediaDto,
-  ) {
-    const workoutMedia = await this.prisma.workoutMedia.findFirst({
-      where: {
-        key: deleteWorkoutMediaDto.key,
-        workout: { userId },
-      },
-    });
-    if (!workoutMedia) {
-      throw new NotFoundException('Workout media not found or unauthorized');
-    }
-    await this.cloudflareR2Service.deleteFile(workoutMedia.url);
-    await this.prisma.workoutMedia.delete({
-      where: { key: deleteWorkoutMediaDto.key },
     });
   }
 }
