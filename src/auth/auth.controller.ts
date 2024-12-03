@@ -26,6 +26,7 @@ import {
 import { GetProfileDto } from './dto/get-profile.dto';
 import { InternalAuthGuard } from './internal-auth.guard';
 import { DeviceTokenDto } from './dto/deviceToken.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Controller('auth')
 @ApiTags('auth')
@@ -83,7 +84,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'Profile updated' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
-  async updateProfile(@User() user: ReqUser, @Body() body: AuthDto) {
+  async updateProfile(@User() user: ReqUser, @Body() body: UpdateProfileDto) {
     return this.authService.updateProfile(user.id, body);
   }
 

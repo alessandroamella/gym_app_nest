@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   HttpStatus,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -12,21 +13,24 @@ import { CloudflareR2Service } from 'cloudflare-r2/cloudflare-r2.service';
 import { PrismaService } from 'prisma/prisma.service';
 import { GetProfileDto } from './dto/get-profile.dto';
 import { WorkoutService } from 'workout/workout.service';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { Logger } from 'winston';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private workoutService: WorkoutService,
     private cloudflareR2Service: CloudflareR2Service,
+    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
   async createUser(body: AuthDto) {
     const { username, password } = body;
 
     // username must be unique
-    const existingUser = await this.prisma.user.findUnique({
+    const existingUser = await this.prisma.user.findFirst({
       where: { username },
     });
     if (existingUser) {
@@ -87,11 +91,11 @@ export class AuthService {
     return user;
   }
 
-  async updateProfile(userId: number, body: AuthDto) {
+  async updateProfile(userId: number, body: UpdateProfileDto) {
     const { username, password } = body;
 
     // username must be unique
-    const existingUser = await this.prisma.user.findUnique({
+    const existingUser = await this.prisma.user.findFirst({
       where: { username },
     });
     if (existingUser && existingUser.id !== userId) {
@@ -103,6 +107,10 @@ export class AuthService {
     if (password) {
       updateData.pwHash = await bcrypt.hash(password, 10);
     }
+
+    this.logger.debug(
+      `Updating user ${userId} with ${JSON.stringify(updateData)}`,
+    );
 
     await this.prisma.user.update({
       where: { id: userId },
