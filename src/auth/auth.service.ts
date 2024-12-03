@@ -6,13 +6,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { AuthDto } from './dto/auth.dto';
-import type { Prisma } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { CloudflareR2Service } from 'cloudflare-r2/cloudflare-r2.service';
 import { PrismaService } from 'prisma/prisma.service';
 import { GetProfileDto } from './dto/get-profile.dto';
-import { WorkoutService } from 'workout/workout.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Logger } from 'winston';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -92,7 +90,7 @@ export class AuthService {
   }
 
   async updateProfile(userId: number, body: UpdateProfileDto) {
-    const { username, password } = body;
+    const { username } = body;
 
     // username must be unique
     const existingUser = await this.prisma.user.findFirst({
@@ -102,11 +100,7 @@ export class AuthService {
       throw new BadRequestException('Username already taken');
     }
 
-    const updateData: Prisma.UserUpdateInput = { username };
-
-    if (password) {
-      updateData.pwHash = await bcrypt.hash(password, 10);
-    }
+    const updateData: UpdateProfileDto = { username };
 
     this.logger.debug(
       `Updating user ${userId} with ${JSON.stringify(updateData)}`,
