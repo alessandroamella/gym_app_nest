@@ -11,9 +11,19 @@ import {
   WINSTON_MODULE_PROVIDER,
 } from 'nest-winston';
 import { Logger } from 'winston';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
+import { cwd } from 'process';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const useHttps = process.env.DEBUG_USE_HTTPS?.toString() === 'true';
+
+  const app = await NestFactory.create(AppModule, {
+    httpsOptions: useHttps && {
+      key: await readFile(join(cwd(), 'localhost-key.pem')),
+      cert: await readFile(join(cwd(), 'localhost.pem')),
+    },
+  });
 
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
@@ -58,7 +68,11 @@ async function bootstrap() {
 
   const logger = app.get(WINSTON_MODULE_PROVIDER) as Logger;
 
-  logger.info(`Server is running on http://${HOST}:${PORT}`);
+  logger.info(
+    `Server is running on http${
+      useHttps ? 's' : ''
+    }://${HOST}:${PORT}/${prefix}`,
+  );
 }
 
 bootstrap();

@@ -1,4 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { MediaCategory, MotivationPost, Workout } from '@prisma/client';
 import { CloudflareR2Service } from 'cloudflare-r2/cloudflare-r2.service';
 import { PrismaService } from 'prisma/prisma.service';
@@ -6,12 +11,14 @@ import { DeleteMediaDto } from 'media/dto/delete-media.dto';
 import { CreateMediaDto } from './dto/create-media.dto';
 import { Logger } from 'winston';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class MediaService {
   constructor(
     private prisma: PrismaService,
     private r2: CloudflareR2Service,
+    private readonly jwtService: JwtService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
@@ -20,6 +27,27 @@ export class MediaService {
     key: true,
     url: true,
   };
+
+  async processMediaAuth(key: string, token?: unknown): Promise<void> {
+    const media = await this.prisma.media.findFirst({
+      where: { key },
+    });
+
+    if (!media.needsAuth) return;
+
+    try {
+      if (typeof token !== 'string') {
+        throw new Error('Invalid token');
+      }
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: process.env.JWT_SECRET,
+      });
+      this.logger.debug(`User ${payload.userId} is accessing media ${key}`);
+    } catch (err) {
+      this.logger.debug('Invalid token: ' + token + ' - ' + err);
+      throw new UnauthorizedException('Invalid token');
+    }
+  }
 
   async createMedia(
     userId: number,
@@ -57,6 +85,8 @@ export class MediaService {
         key,
         url,
         category,
+        // protect media for posts
+        needsAuth: category === MediaCategory.POST,
         mime: createMediaDto.file.mimetype,
         [category === MediaCategory.WORKOUT ? 'workout' : 'post']: {
           connect: { id: foreignId },

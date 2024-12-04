@@ -10,7 +10,7 @@ export const configValidationSchema = Joi.object({
   R2_ENDPOINT_URL: Joi.string().uri().required(),
   R2_ACCESS_KEY_ID: Joi.string().required(),
   R2_SECRET_ACCESS_KEY: Joi.string().required(),
-  R2_PUBLIC_URL: Joi.string().uri().required(),
   INTERNAL_API_KEY_HASH: Joi.string().required(),
   FIREBASE_SERVICE_ACCOUNT_PATH: Joi.string().required(),
+  DEBUG_USE_HTTPS: Joi.boolean().default(false),
 });

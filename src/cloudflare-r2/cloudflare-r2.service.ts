@@ -58,7 +58,8 @@ export class CloudflareR2Service {
       this.logger.info(`File uploaded successfully: ${fileKey}`);
       return {
         key: fileKey,
-        url: `${this.config.get<string>('R2_PUBLIC_URL')}/${fileKey}`,
+        // `${this.config.get<string>('R2_PUBLIC_URL')}/${fileKey}`
+        url: `/v1/media/${fileKey}`,
       };
     } catch (error) {
       this.logger.error('Failed to upload file to Cloudflare R2', { error });

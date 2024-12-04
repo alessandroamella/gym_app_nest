@@ -5,11 +5,14 @@ import { IsIn } from 'class-validator';
 export const mediaCategoryMap = {
   workout: MediaCategory.WORKOUT,
   post: MediaCategory.POST,
+  // profilePic: MediaCategory.PROFILE_PIC,
 } as const;
 
 const categoriesLowercased = Object.keys(
   mediaCategoryMap,
 ) as (keyof typeof mediaCategoryMap)[];
+
+export type LowercasedMediaCategory = keyof typeof mediaCategoryMap;
 
 export class MediaCategoryLowercasedDto {
   @ApiProperty({
@@ -24,5 +27,5 @@ export class MediaCategoryLowercasedDto {
       )}`;
     },
   })
-  category: keyof typeof mediaCategoryMap;
+  category: LowercasedMediaCategory;
 }

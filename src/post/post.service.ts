@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpStatus,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { CreatePostDto } from './dto/create-post.dto';
 import { PrismaService } from 'prisma/prisma.service';
 import { SharedService } from 'shared/shared.service';
@@ -6,6 +11,9 @@ import { PaginationQueryDto } from 'shared/dto/pagination-query.dto';
 import { GetAllPostsResponseDto } from './dto/get-all-post.dto';
 import { CloudflareR2Service } from 'cloudflare-r2/cloudflare-r2.service';
 import { MediaCategory } from '@prisma/client';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
+import { PostLikesDto } from './dto/post-likes.dto';
 
 @Injectable()
 export class PostService {
@@ -13,6 +21,7 @@ export class PostService {
     private prisma: PrismaService,
     private shared: SharedService,
     private r2: CloudflareR2Service,
+    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
   private readonly postSelect = {
@@ -91,5 +100,45 @@ export class PostService {
         select: this.postSelect,
       });
     });
+  }
+
+  public async toggleLike(
+    userId: number,
+    postId: number,
+  ): Promise<[HttpStatus, PostLikesDto | null]> {
+    const like = await this.prisma.postLike.findFirst({
+      where: {
+        userId,
+        postId,
+      },
+    });
+
+    return like
+      ? [HttpStatus.OK, (await this.removeLike(userId, postId), null)]
+      : [HttpStatus.CREATED, await this.addLike(userId, postId)];
+  }
+
+  private async addLike(userId: number, postId: number) {
+    this.logger.debug(`User ${userId} liked post ${postId}`);
+    return this.prisma.postLike.create({
+      data: {
+        userId,
+        postId,
+      },
+      select: this.postSelect.likes.select,
+    });
+  }
+
+  private async removeLike(userId: number, postId: number) {
+    this.logger.debug(`User ${userId} unliked post ${postId}`);
+    await this.prisma.postLike.delete({
+      where: {
+        userId_postId: {
+          userId,
+          postId,
+        },
+      },
+    });
+    return HttpStatus.OK;
   }
 }

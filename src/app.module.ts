@@ -14,9 +14,13 @@ import { MediaModule } from './media/media.module';
 import { PostModule } from './post/post.module';
 import { SharedModule } from './shared/shared.module';
 import winston from 'winston';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
+    CacheModule.register({
+      isGlobal: true,
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: configValidationSchema,

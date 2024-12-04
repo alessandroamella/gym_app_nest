@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
@@ -17,6 +18,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiCreatedResponse,
   ApiOkResponse,
   ApiQuery,
   ApiTags,
@@ -27,6 +29,7 @@ import { GetAllPostsResponseDto } from './dto/get-all-post.dto';
 import { CloudflareR2Service } from 'cloudflare-r2/cloudflare-r2.service';
 import { Logger } from 'winston';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Response } from 'express';
 
 @Controller('post')
 @ApiTags('post')
@@ -74,5 +77,18 @@ export class PostController {
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   async remove(@User() user: ReqUser, @Param('id', ParseIntPipe) id: number) {
     return this.postService.remove(user.id, id);
+  }
+
+  @Post(':id/like')
+  @ApiCreatedResponse({ description: 'Post liked' })
+  @ApiOkResponse({ description: 'Post unliked' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  async like(
+    @User() user: ReqUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+  ) {
+    const [status, like] = await this.postService.toggleLike(user.id, id);
+    return res.status(status).json(like);
   }
 }

@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Res,
   UploadedFile,
   UseGuards,
@@ -27,18 +28,19 @@ import { User, ReqUser } from 'auth/user.decorator';
 import { CreateMediaDto } from 'media/dto/create-media.dto';
 import { MediaService } from './media.service';
 import { AuthGuard } from 'auth/auth.guard';
-import { mediaCategoryMap } from './dto/media-category-lowercased';
+import {
+  LowercasedMediaCategory,
+  mediaCategoryMap,
+} from './dto/media-category-lowercased';
 import { ValidateMediaCategoryPipe } from './media-category.validator';
-import { GetObjectCommandOutput } from '@aws-sdk/client-s3';
 import { CloudflareR2Service } from 'cloudflare-r2/cloudflare-r2.service';
 import { Logger } from 'winston';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { GetObjectCommandOutput } from '@aws-sdk/client-s3';
 import { Response } from 'express';
 
 @Controller('media')
 @ApiTags('media')
-@UseGuards(AuthGuard)
-@ApiBearerAuth()
 export class MediaController {
   constructor(
     private readonly mediaService: MediaService,
@@ -46,10 +48,17 @@ export class MediaController {
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
+  // used for proxying media from S3 to the client
   @Get(':key')
   @ApiOkResponse({ description: 'Media' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
-  async getMedia(@Param('key') key: string, @Res() res: Response) {
+  async getMedia(
+    @Param('key') key: string,
+    @Query('token') token: string,
+    @Res() res: Response,
+  ) {
+    await this.mediaService.processMediaAuth(key, token);
+
     let s3Response: GetObjectCommandOutput;
 
     try {
@@ -68,9 +77,11 @@ export class MediaController {
     res.set({
       'Content-Type': s3Response.ContentType || 'application/octet-stream',
       'Content-Length': s3Response.ContentLength?.toString() || '',
+      // prevent search engines from indexing media
+      'X-Robots-Tag': 'noindex',
     });
 
-    // Pipe the WebStream to the response
+    // pipe the WebStream to the response
     readableStream.pipeTo(
       new WritableStream({
         write(chunk) {
@@ -84,6 +95,8 @@ export class MediaController {
   }
 
   @Post(':category/:id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -98,7 +111,8 @@ export class MediaController {
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   async createMedia(
     @User() user: ReqUser,
-    @Param('category', ValidateMediaCategoryPipe) category: string,
+    @Param('category', ValidateMediaCategoryPipe)
+    category: LowercasedMediaCategory,
     @Param('id', ParseIntPipe) id: number,
     @UploadedFile() file: Express.Multer.File,
   ) {
@@ -117,11 +131,14 @@ export class MediaController {
   }
 
   @Delete(':category/:key')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOkResponse({ description: 'Media deleted' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   async deleteMedia(
     @User() user: ReqUser,
-    @Param('category', ValidateMediaCategoryPipe) category: string,
+    @Param('category', ValidateMediaCategoryPipe)
+    category: LowercasedMediaCategory,
     @Param('key') key: string,
   ) {
     return this.mediaService.deleteMedia(user.id, mediaCategoryMap[category], {
@@ -130,6 +147,8 @@ export class MediaController {
   }
 
   @Patch('profile-pic')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiBody({
