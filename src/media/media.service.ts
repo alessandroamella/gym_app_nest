@@ -33,19 +33,23 @@ export class MediaService {
       where: { key },
     });
 
-    if (!media.needsAuth) return;
-
-    try {
-      if (typeof token !== 'string') {
-        throw new Error('Invalid token');
+    if (media?.needsAuth) {
+      try {
+        if (typeof token !== 'string') {
+          throw new Error('Invalid token');
+        }
+        const payload = await this.jwtService.verifyAsync(token, {
+          secret: process.env.JWT_SECRET,
+        });
+        this.logger.debug(`User ${payload.userId} is accessing media ${key}`);
+      } catch (err) {
+        this.logger.debug('Invalid token: ' + token + ' - ' + err);
+        throw new UnauthorizedException('Invalid token');
       }
-      const payload = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_SECRET,
-      });
-      this.logger.debug(`User ${payload.userId} is accessing media ${key}`);
-    } catch (err) {
-      this.logger.debug('Invalid token: ' + token + ' - ' + err);
-      throw new UnauthorizedException('Invalid token');
+    }
+
+    if (!media) {
+      throw new NotFoundException('Media not found');
     }
   }
 
