@@ -71,6 +71,7 @@ model Workout {
   notes     String?
   userId    Int
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isPublic  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   comments  Comment[]

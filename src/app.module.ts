@@ -15,6 +15,7 @@ import { PostModule } from './post/post.module';
 import { SharedModule } from './shared/shared.module';
 import winston from 'winston';
 import { CacheModule } from '@nestjs/cache-manager';
+import { RankingModule } from './ranking/ranking.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { CacheModule } from '@nestjs/cache-manager';
     MediaModule,
     PostModule,
     SharedModule,
+    RankingModule,
   ],
 })
 export class AppModule {}
